@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -208,7 +209,7 @@ export default function AuditFindings() {
         setLoading(true);
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const res = await fetch(`http://localhost:3001/api/audit-plans?userId=${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`);
             const plans: any[] = await res.json();
             const all: Finding[] = [];
             plans.forEach((plan) => {

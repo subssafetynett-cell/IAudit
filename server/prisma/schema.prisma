@@ -142,3 +142,11 @@ model AuditPlan {
 
   @@unique([auditProgramId, executionId]) // Ensure one plan per execution slot
 }
+
+model Otp {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

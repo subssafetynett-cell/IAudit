@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,7 +57,7 @@ import {
 import UserModal from "@/components/UserModal";
 import ReusablePagination from "@/components/ReusablePagination";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = `${API_BASE_URL}/api`;
 
 export default function SuperAdmin() {
     const navigate = useNavigate();

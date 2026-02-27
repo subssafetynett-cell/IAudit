@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,7 +118,7 @@ const CreateAuditPlanPage = () => {
         const fetchUsers = async () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const response = await fetch(`http://localhost:3001/api/users?creatorId=${user.id}`);
+                const response = await fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (Array.isArray(data)) {
@@ -266,7 +267,7 @@ const CreateAuditPlanPage = () => {
                 userId: user.id
             };
 
-            const url = isEditMode ? `http://localhost:3001/api/audit-plans/${plan.id}` : 'http://localhost:3001/api/audit-plans';
+            const url = isEditMode ? `${API_BASE_URL}/api/audit-plans/${plan.id}` : `${API_BASE_URL}/api/audit-plans`;
             const method = isEditMode ? 'PUT' : 'POST';
 
             const response = await fetch(url, {

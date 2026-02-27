@@ -3,13 +3,18 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import prisma from './prisma.js';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+    origin: ['https://apps.iaudit.global', 'http://localhost:5173'], // Allow production and local development
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json({ limit: '50mb' }));
 const router = express.Router();
 
@@ -22,9 +27,8 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Temporary in-memory store for OTPs
-// Structure: { "user@email.com": { otp: "123456", expiresAt: 1712... } }
-const otpStore = new Map();
+// Temporary in-memory store for OTPs - REMOVED for AWS scalability
+// const otpStore = new Map();
 
 // Helper function to generate a 6 digit code
 const generateOTP = () => {
@@ -313,9 +317,14 @@ app.post('/api/auth/send-otp', async (req, res) => {
         }
 
         const otp = generateOTP();
-        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes expiration
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
 
-        otpStore.set(email, { otp, expiresAt });
+        // Store OTP in database (Upsert: update if exists for this email, else create)
+        await prisma.otp.upsert({
+            where: { email },
+            update: { code: otp, expiresAt },
+            create: { email, code: otp, expiresAt }
+        });
 
         const mailOptions = {
             from: 'subs.safetynett@gmail.com',
@@ -340,23 +349,24 @@ app.post('/api/auth/verify-otp-and-signup', async (req, res) => {
         return res.status(400).json({ error: 'Email and OTP are required' });
     }
 
-    const storedData = otpStore.get(email);
+    const storedData = await prisma.otp.findUnique({ where: { email } });
 
     if (!storedData) {
         return res.status(400).json({ error: 'No OTP requested for this email' });
     }
 
-    if (Date.now() > storedData.expiresAt) {
-        otpStore.delete(email);
+    if (new Date() > storedData.expiresAt) {
+        await prisma.otp.delete({ where: { email } });
         return res.status(400).json({ error: 'OTP has expired' });
     }
 
-    if (storedData.otp !== otp) {
+    if (storedData.code !== otp) {
         return res.status(400).json({ error: 'Invalid OTP' });
     }
 
     try {
         // OTP is valid! Create the user.
+        const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
             data: {
                 firstName,
@@ -366,12 +376,12 @@ app.post('/api/auth/verify-otp-and-signup', async (req, res) => {
                 role: role || 'User',
                 customRoleName,
                 isActive: isActive !== undefined ? isActive : true,
-                password // Note: In a real app, hash this!
+                password: hashedPassword
             }
         });
 
-        // Clean up OTP from memory
-        otpStore.delete(email);
+        // Clean up OTP from database
+        await prisma.otp.delete({ where: { email } });
 
         const { password: _, ...userWithoutPassword } = user;
         res.status(201).json(userWithoutPassword);
@@ -398,8 +408,9 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Note: In a real app, hash and compare this!
-        if (user.password !== password) {
+        // Use bcrypt to compare the provided password with the hashed password in DB
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        if (!isPasswordMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -477,7 +488,7 @@ app.post('/api/users', async (req, res) => {
                 role,
                 customRoleName,
                 isActive: req.body.isActive !== undefined ? req.body.isActive : true,
-                password, // Note: In a real app, hash this!
+                password: await bcrypt.hash(password, 10),
                 creatorId: creatorId ? parseInt(creatorId) : null
             }
         });
@@ -537,7 +548,7 @@ app.put('/api/users/:id', async (req, res) => {
         };
 
         if (password) {
-            updateData.password = password; // Note: hash this!
+            updateData.password = await bcrypt.hash(password, 10);
         }
 
         const user = await prisma.user.update({

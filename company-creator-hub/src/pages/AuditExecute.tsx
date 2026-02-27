@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 import {
   ArrowLeft,
   Edit,
@@ -235,7 +236,7 @@ const AuditExecute = () => {
       setIsRefreshing(true);
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const res = await fetch(`http://localhost:3001/api/audit-plans?userId=${user.id}`);
+        const res = await fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`);
         const allPlans = await res.json();
         const found = allPlans.find((p: any) => p.id === parseInt(id));
         if (found) {
@@ -680,7 +681,7 @@ const AuditExecute = () => {
         progress: progressValue
       };
 
-      const res = await fetch(`http://localhost:3001/api/audit-plans/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/audit-plans/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

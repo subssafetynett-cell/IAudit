@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 import { TopNav } from "@/components/TopNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -91,9 +92,9 @@ const AuditProgramPage = () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const [sitesRes, programsRes, plansRes] = await Promise.all([
-                    fetch("http://localhost:3001/api/sites"),
-                    fetch(`http://localhost:3001/api/audit-programs?userId=${user.id}`),
-                    fetch(`http://localhost:3001/api/audit-plans?userId=${user.id}`)
+                    fetch("${API_BASE_URL}/api/sites"),
+                    fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`),
+                    fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`)
                 ]);
                 const sitesData = await sitesRes.json();
                 const programsData = await programsRes.json();
@@ -169,7 +170,7 @@ const AuditProgramPage = () => {
     const handleDeletePlan = async (planId: number) => {
         if (!confirm("Are you sure you want to delete this audit plan?")) return;
         try {
-            const res = await fetch(`http://localhost:3001/api/audit-plans/${planId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planId}`, {
                 method: "DELETE"
             });
             if (res.ok) {

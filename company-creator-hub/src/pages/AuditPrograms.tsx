@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { TopNav } from "@/components/TopNav";
+import { API_BASE_URL } from "@/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -125,9 +126,9 @@ const AuditPrograms = () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const [sitesRes, usersRes, programsRes] = await Promise.all([
-                    fetch("http://localhost:3001/api/sites"),
-                    fetch(`http://localhost:3001/api/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
-                    fetch(`http://localhost:3001/api/audit-programs?userId=${user.id}`)
+                    fetch("${API_BASE_URL}/api/sites"),
+                    fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
+                    fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
                 ]);
                 const sitesData = sitesRes.ok ? await sitesRes.json() : [];
                 const usersData = usersRes.ok ? await usersRes.json() : [];
@@ -151,7 +152,7 @@ const AuditPrograms = () => {
     const fetchPrograms = async () => {
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const res = await fetch(`http://localhost:3001/api/audit-programs?userId=${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`);
             if (res.ok) {
                 const data = await res.json();
                 setAuditPrograms(Array.isArray(data) ? data : []);
@@ -236,7 +237,7 @@ const AuditPrograms = () => {
 
     const handleSaveProgram = async () => {
         setLoading(true);
-        const url = view === "edit" ? `http://localhost:3001/api/audit-programs/${currentId}` : "http://localhost:3001/api/audit-programs";
+        const url = view === "edit" ? `${API_BASE_URL}/api/audit-programs/${currentId}` : "${API_BASE_URL}/api/audit-programs";
         const method = view === "edit" ? "PUT" : "POST";
 
         try {
@@ -276,7 +277,7 @@ const AuditPrograms = () => {
     const handleDeleteProgram = async () => {
         if (!deleteId) return;
         try {
-            const res = await fetch(`http://localhost:3001/api/audit-programs/${deleteId}`, { method: "DELETE" });
+            const res = await fetch(`${API_BASE_URL}/api/audit-programs/${deleteId}`, { method: "DELETE" });
             if (res.ok) {
                 toast.success("Program deleted");
                 await fetchPrograms();

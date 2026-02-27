@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,7 +91,7 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch('http://localhost:3001/api/auth/login', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: loginEmail, password: loginPassword })
@@ -127,7 +128,7 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch('http://localhost:3001/api/auth/send-otp', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: signupEmail })
@@ -156,7 +157,7 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch('http://localhost:3001/api/auth/verify-otp-and-signup', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp-and-signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

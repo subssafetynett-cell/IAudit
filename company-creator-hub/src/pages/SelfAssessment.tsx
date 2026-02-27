@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { API_BASE_URL } from "@/config";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -521,7 +522,7 @@ const SelfAssessment = () => {
                     reader.onloadend = async () => {
                         const base64 = (reader.result as string).split(',')[1];
                         try {
-                            await fetch("http://localhost:3001/api/send-assessment-report", {
+                            await fetch("${API_BASE_URL}/api/send-assessment-report", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({

@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { Company, Site, Department, ISOStandard } from "@/types/company";
+import { API_BASE_URL } from "@/config";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = `${API_BASE_URL}/api`;
 
 let globalCompanies: Company[] = [];
 let listeners: Array<() => void> = [];

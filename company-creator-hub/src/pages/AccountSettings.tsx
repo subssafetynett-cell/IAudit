@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Lock, Loader2, Check } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 
 export default function AccountSettings() {
     const { toast } = useToast();
@@ -75,7 +76,7 @@ export default function AccountSettings() {
         try {
             const userId = user.id || user._id;
 
-            const response = await fetch(`http://localhost:3001/api/users/${userId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

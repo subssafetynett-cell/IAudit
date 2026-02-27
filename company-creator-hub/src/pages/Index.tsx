@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useCompanyStore } from "@/hooks/useCompanyStore";
+import { API_BASE_URL } from "@/config";
 import {
   Building2,
   MapPin,
@@ -36,9 +37,9 @@ const Index = () => {
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const [usersRes, plansRes, programsRes] = await Promise.all([
-          fetch(`http://localhost:3001/api/users?creatorId=${user.id}`),
-          fetch(`http://localhost:3001/api/audit-plans?userId=${user.id}`),
-          fetch(`http://localhost:3001/api/audit-programs?userId=${user.id}`)
+          fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`),
+          fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`),
+          fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
         ]);
 
         if (usersRes.ok) setUsers(await usersRes.json());
