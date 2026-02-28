@@ -26,7 +26,7 @@ app.use((req, res, next) => {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "script-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data:; " +
-        "connect-src 'self' https://apps.iaudit.global https://fonts.googleapis.com;"
+        "connect-src 'self' https://apps.iaudit.global https://fonts.googleapis.com http://localhost:3001 http://localhost:5173;"
     );
     next();
 });
