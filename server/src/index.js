@@ -354,11 +354,30 @@ app.post('/api/auth/send-otp', async (req, res) => {
         };
 
         await transporter.sendMail(mailOptions);
+        console.log(`OTP successfully sent to ${email}`);
         res.status(200).json({ message: 'OTP sent successfully' });
 
     } catch (error) {
-        console.error('Failed to send OTP:', error);
-        res.status(500).json({ error: 'Failed to send OTP' });
+        console.error('--- SEND OTP FAILURE ---');
+        console.error('Email:', email);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        if (error.code) console.error('Error code:', error.code);
+        if (error.command) console.error('Error command:', error.command);
+        console.error('Full error:', error);
+        console.error('--------------------------');
+
+        let clientMessage = 'Failed to send OTP';
+        if (error.message.includes('Prisma')) {
+            clientMessage = 'Database error while generating OTP';
+        } else if (error.code === 'EAUTH' || error.message.includes('Nodemailer')) {
+            clientMessage = 'Email service authentication failed';
+        }
+
+        res.status(500).json({
+            error: clientMessage,
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
