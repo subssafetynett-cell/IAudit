@@ -93,7 +93,9 @@ const AuditList = () => {
                 reader.readAsDataURL(blob);
             });
             doc.addImage(base64, 'PNG', 20, 10, 25, 25);
-        } catch (e) { }
+        } catch (e) {
+            console.warn("Logo could not be loaded for PDF", e);
+        }
 
         // --- Header banner ---
         doc.setFillColor(16, 185, 129);
@@ -231,7 +233,9 @@ const AuditList = () => {
         try {
             const response = await fetch('/iAudit Global-01.png');
             logoBuffer = await response.arrayBuffer();
-        } catch (e) { }
+        } catch (e) {
+            console.warn("Logo could not be loaded for DOCX", e);
+        }
 
         const sectionGreen = '0EA572';
         const children: any[] = [];
@@ -544,7 +548,9 @@ const AuditList = () => {
                                                     timeString = `${parsedItin[0].startTime} - ${parsedItin[parsedItin.length - 1].endTime}`;
                                                 }
                                             }
-                                        } catch (e) { }
+                                        } catch (e) {
+                                            console.warn("Failed to parse itinerary", e);
+                                        }
 
                                         return (
                                             <TableRow key={plan.id} className="cursor-pointer hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0 group">

@@ -409,9 +409,23 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // Use bcrypt to compare the provided password with the hashed password in DB
-        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        let isPasswordMatch = false;
+        try {
+            isPasswordMatch = await bcrypt.compare(password, user.password);
+        } catch (error) {
+            isPasswordMatch = false;
+        }
+
         if (!isPasswordMatch) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            // Fallback: check plain text (for existing users not yet migrated to hashing)
+            if (user.password === password) {
+                // Migration: hash and save the password for future logins
+                const hashedPassword = await bcrypt.hash(password, 10);
+                await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
+                isPasswordMatch = true;
+            } else {
+                return res.status(401).json({ error: 'Invalid credentials' });
+            }
         }
 
         if (!user.isActive) {

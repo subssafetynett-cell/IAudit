@@ -61,7 +61,7 @@ const Index = () => {
   const totalDepts = companies.reduce((acc, c) => acc + (c.sites?.reduce((a, s) => a + (s.departments?.length || 0), 0) || 0), 0);
 
   // Findings Calculation (Matching AuditFindings.tsx extraction logic)
-  let allFindings: any[] = [];
+  const allFindings: any[] = [];
   auditPlans.forEach(plan => {
     try {
       const auditData = typeof plan.auditData === 'string' ? JSON.parse(plan.auditData) : (plan.auditData || {});

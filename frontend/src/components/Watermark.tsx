@@ -41,8 +41,8 @@ const Watermark: React.FC = () => {
         if (!isDragging) return;
         dragHasMoved.current = true;
 
-        let newX = e.clientX - dragStartPos.current.x;
-        let newY = e.clientY - dragStartPos.current.y;
+        const newX = e.clientX - dragStartPos.current.x;
+        const newY = e.clientY - dragStartPos.current.y;
 
         setPosition({ x: newX, y: newY });
     };
