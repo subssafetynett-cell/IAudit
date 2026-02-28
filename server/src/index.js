@@ -388,6 +388,49 @@ app.post('/api/auth/send-otp', async (req, res) => {
     }
 });
 
+app.post('/api/auth/signup', async (req, res) => {
+    const { email, firstName, lastName, mobile, password, role, customRoleName, isActive } = req.body;
+
+    if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ error: 'Email, password, and name are required' });
+    }
+
+    try {
+        // 1. Prevent signup if user already exists
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+
+        // 2. Create the user
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await prisma.user.create({
+            data: {
+                firstName,
+                lastName,
+                email,
+                mobile,
+                role: role || 'User',
+                customRoleName,
+                isActive: isActive !== undefined ? isActive : true,
+                password: hashedPassword
+            }
+        });
+
+        const { password: _, ...userWithoutPassword } = user;
+        res.status(201).json(userWithoutPassword);
+    } catch (error) {
+        console.error('Error during direct signup:', error);
+        if (error.code === 'P1001') {
+            return res.status(503).json({
+                error: 'Database connection failed',
+                message: 'The server cannot reach the database. Please check your production database status.'
+            });
+        }
+        res.status(500).json({ error: 'Failed to create user' });
+    }
+});
+
 app.post('/api/auth/verify-otp-and-signup', async (req, res) => {
     const { email, otp, firstName, lastName, mobile, password, role, customRoleName, isActive } = req.body;
 
