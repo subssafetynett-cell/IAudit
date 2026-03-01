@@ -9,7 +9,7 @@ const { PrismaClient } = pkgPrisma;
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 5000 // 5 seconds
+    connectionTimeoutMillis: 15000 // 15 seconds
 });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });

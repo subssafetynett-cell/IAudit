@@ -26,12 +26,11 @@ async function diagnose() {
         console.error('❌ Database connection/query failed:');
         console.error(dbError);
         console.log('\n--- RDS TROUBLESHOOTING TIPS ---');
-        console.log('1. Ensure your DATABASE_URL in server/.env is correctly formatted:');
-        console.log('   postgresql://USER:PASSWORD@RDS_ENDPOINT:5432/DB_NAME?schema=public');
-        console.log('2. PORT 5432: Check your RDS Security Group Inbound rules.');
-        console.log('   You MUST allow Port 5432 from your EC2 instance private IP or "0.0.0.0/0" (for testing).');
-        console.log('3. PRISMA CLIENT: If you see "Incompatible engine", run:');
-        console.log('   npx prisma generate');
+        console.log('1. SSL: RDS often requires SSL. Try adding "?sslmode=no-verify" to your DATABASE_URL.');
+        console.log('2. MIGRATIONS: If you see "relation does not exist", run:');
+        console.log('   npx prisma db push');
+        console.log('3. TIMEOUT: I have increased the timeout to 15s in the latest code.');
+        console.log('4. SECURITY GROUPS: Ensure Port 5432 is open for your EC2 Private IP.');
         console.log('\nCurrent DATABASE_URL starts with:', process.env.DATABASE_URL?.substring(0, 20) + '...');
     }
 
