@@ -25,8 +25,14 @@ async function diagnose() {
     } catch (dbError) {
         console.error('❌ Database connection/query failed:');
         console.error(dbError);
-        console.log('\nTIP: Ensure your DATABASE_URL in server/.env is correct for EC2.');
-        console.log('Current DATABASE_URL starts with:', process.env.DATABASE_URL?.substring(0, 20) + '...');
+        console.log('\n--- RDS TROUBLESHOOTING TIPS ---');
+        console.log('1. Ensure your DATABASE_URL in server/.env is correctly formatted:');
+        console.log('   postgresql://USER:PASSWORD@RDS_ENDPOINT:5432/DB_NAME?schema=public');
+        console.log('2. PORT 5432: Check your RDS Security Group Inbound rules.');
+        console.log('   You MUST allow Port 5432 from your EC2 instance private IP or "0.0.0.0/0" (for testing).');
+        console.log('3. PRISMA CLIENT: If you see "Incompatible engine", run:');
+        console.log('   npx prisma generate');
+        console.log('\nCurrent DATABASE_URL starts with:', process.env.DATABASE_URL?.substring(0, 20) + '...');
     }
 
     // 2. Check Email service
