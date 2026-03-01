@@ -135,6 +135,7 @@ model AuditPlan {
   auditors       User[]       @relation("PlanAuditors")
   itinerary      Json?        // Stores array of {id, startTime, endTime, activity, notes}
   auditData      Json?        // Stores audit execution progress/results
+  findingsData   Json?        // Stores findings-specific overrides
   userId         Int?
   user           User?        @relation("UserAuditPlans", fields: [userId], references: [id])
   createdAt      DateTime     @default(now())

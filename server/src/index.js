@@ -851,6 +851,7 @@ app.put('/api/audit-plans/:id', async (req, res) => {
         }
         if (itinerary !== undefined) updateData.itinerary = itinerary;
         if (req.body.auditData !== undefined) updateData.auditData = req.body.auditData;
+        if (req.body.findingsData !== undefined) updateData.findingsData = req.body.findingsData;
         updateData.updatedAt = new Date();
 
         const plan = await prisma.auditPlan.update({
