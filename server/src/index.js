@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-    origin: ['https://apps.iaudit.global', 'http://localhost:5173'], // Allow production and local development
+    origin: ['https://apps.iaudit.global', 'http://localhost:5173', 'http://localhost:8080'], // Allow production and local development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -26,7 +26,7 @@ app.use((req, res, next) => {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "script-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data:; " +
-        "connect-src 'self' https://apps.iaudit.global https://fonts.googleapis.com http://localhost:3001 http://localhost:5173;"
+        "connect-src 'self' https://apps.iaudit.global https://fonts.googleapis.com;"
     );
     next();
 });
@@ -323,7 +323,9 @@ app.delete('/api/companies/:id', async (req, res) => {
 // Auth & OTP Routes
 // -------------------------
 
-app.post('/api/auth/send-otp', async (req, res) => {
+// Alias for signup if frontend calls /api/auth/signup directly
+// Refactored Send OTP logic to be reusable
+const sendOtpLogic = async (req, res) => {
     const { email } = req.body;
     if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -365,70 +367,24 @@ app.post('/api/auth/send-otp', async (req, res) => {
         console.error('Email:', email);
         console.error('Error message:', error.message);
 
-        // Handle specific Prisma connection error
-        if (error.code === 'P1001') {
-            console.error('DATABASE CONNECTION ERROR: Production database unreachable at 127.0.0.1:5432');
-            return res.status(503).json({
-                error: 'Database connection failed',
-                message: 'The server cannot reach the database. Please check if PostgreSQL is running on the production server.',
-                code: 'P1001',
-                step: step
-            });
+        // Add specific hints for AWS/Production issues
+        if (error.message.includes('ECONNREFUSED')) {
+            console.error('HINT: Check if your DATABASE_URL is accessible from this server.');
+        } else if (error.message.includes('Invalid login') || error.message.includes('EAUTH')) {
+            console.error('HINT: Email authentication failed. Check your SMTP/Gmail credentials.');
         }
-
-        console.error('Full error:', error);
-        console.error('--------------------------');
 
         res.status(500).json({
             error: `Failed during: ${step}`,
             message: error.message,
-            step: step,
-            stack: error.stack
-        });
-    }
-});
-
-app.post('/api/auth/signup', async (req, res) => {
-    const { email, firstName, lastName, mobile, password, role, customRoleName, isActive } = req.body;
-
-    if (!email || !password || !firstName || !lastName) {
-        return res.status(400).json({ error: 'Email, password, and name are required' });
-    }
-
-    try {
-        // 1. Prevent signup if user already exists
-        const existingUser = await prisma.user.findUnique({ where: { email } });
-        if (existingUser) {
-            return res.status(400).json({ error: 'Email already registered' });
-        }
-
-        // 2. Create the user
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await prisma.user.create({
-            data: {
-                firstName,
-                lastName,
-                email,
-                mobile,
-                role: role || 'User',
-                customRoleName,
-                isActive: isActive !== undefined ? isActive : true,
-                password: hashedPassword
-            }
-        });
-
-        const { password: _, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
-    } catch (error) {
-        console.error('Error during direct signup:', error);
-        res.status(500).json({
-            error: 'Failed to create user',
-            message: error.message,
             code: error.code,
-            meta: error.meta
+            step: step
         });
     }
-});
+};
+
+app.post('/api/auth/send-otp', sendOtpLogic);
+app.post('/api/auth/signup', sendOtpLogic);
 
 app.post('/api/auth/verify-otp-and-signup', async (req, res) => {
     const { email, otp, firstName, lastName, mobile, password, role, customRoleName, isActive } = req.body;

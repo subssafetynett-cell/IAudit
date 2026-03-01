@@ -7,14 +7,7 @@ dotenv.config();
 
 const { PrismaClient } = pkgPrisma;
 
-// Construct DATABASE_URL if individual components are provided (Common for AWS RDS)
-let connectionString = process.env.DATABASE_URL;
-if (!connectionString && process.env.DB_HOST) {
-    const { DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME } = process.env;
-    connectionString = `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public`;
-}
-
-const pool = new Pool({ connectionString });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 

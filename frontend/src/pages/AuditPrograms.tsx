@@ -126,7 +126,7 @@ const AuditPrograms = () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const [sitesRes, usersRes, programsRes] = await Promise.all([
-                    fetch("${API_BASE_URL}/api/sites"),
+                    fetch(`${API_BASE_URL}/api/sites`),
                     fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
                     fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
                 ]);
@@ -237,7 +237,7 @@ const AuditPrograms = () => {
 
     const handleSaveProgram = async () => {
         setLoading(true);
-        const url = view === "edit" ? `${API_BASE_URL}/api/audit-programs/${currentId}` : "${API_BASE_URL}/api/audit-programs";
+        const url = view === "edit" ? `${API_BASE_URL}/api/audit-programs/${currentId}` : `${API_BASE_URL}/api/audit-programs`;
         const method = view === "edit" ? "PUT" : "POST";
 
         try {

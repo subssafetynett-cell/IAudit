@@ -31,9 +31,9 @@ export default function Auth() {
     const [showSignupPassword, setShowSignupPassword] = useState(false);
     const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
 
-    // OTP Verification States - REMOVED for simplified signup
-    // const [showOtpStep, setShowOtpStep] = useState(false);
-    // const [otpCode, setOtpCode] = useState("");
+    // OTP Verification States
+    const [showOtpStep, setShowOtpStep] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
 
@@ -45,6 +45,7 @@ export default function Auth() {
 
     const toggleMode = () => {
         setIsSignUp(!isSignUp);
+        setShowOtpStep(false);
         setErrorMessage("");
     };
 
@@ -107,13 +108,14 @@ export default function Auth() {
             navigate("/");
 
         } catch (error: any) {
-            setErrorMessage(error.message);
+            console.error('Login error:', error);
+            setErrorMessage(error.message || "Login failed. Please check your credentials and connection.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Simplified Signup: Directly create account
+    // Step 1: Send OTP
     const handleSignupSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -127,11 +129,46 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+            const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: signupEmail })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // If backend returns a 400 with 'Email already registered', this will be caught
+                throw new Error(data.error || 'Failed to send OTP');
+            }
+
+            // Success! Show OTP step
+            setShowOtpStep(true);
+        } catch (error: any) {
+            console.error('Signup error:', error);
+            if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+                setErrorMessage("Unable to connect to the server. Please ensure the backend is running and accessible.");
+            } else {
+                setErrorMessage(error.message || "Failed to send OTP. Please try again.");
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Step 2: Verify OTP & Create Account
+    const handleVerifyOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setErrorMessage("");
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp-and-signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: signupEmail,
+                    otp: otpCode,
                     firstName: signupFirstName,
                     lastName: signupLastName,
                     mobile: signupPhone,
@@ -144,7 +181,7 @@ export default function Auth() {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to create account');
+                throw new Error(data.error || 'Failed to verify OTP');
             }
 
             // Success! Save user to local storage and navigate to dashboard
@@ -152,18 +189,12 @@ export default function Auth() {
             navigate("/");
 
         } catch (error: any) {
-            setErrorMessage(error.message);
+            console.error('OTP Verification error:', error);
+            setErrorMessage(error.message || "Verification failed. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
     };
-
-    // Step 2: Verify OTP & Create Account - REMOVED for simplified signup
-    /*
-    const handleVerifyOtp = async (e: React.FormEvent) => {
-        ...
-    };
-    */
 
     return (
         <div className="min-h-screen bg-white flex font-inter">
@@ -181,7 +212,9 @@ export default function Auth() {
                             <div className="mb-8 text-center lg:text-left">
                                 <h1 className="text-2xl font-bold text-[#111827] mb-1 tracking-tight">Get started</h1>
                                 <p className="text-sm text-[#6B7280]">
-                                    Please enter your details to create an account.
+                                    {showOtpStep
+                                        ? "Enter the 6-digit verification code sent to your email."
+                                        : "Please enter your details to create an account."}
                                 </p>
                             </div>
 
@@ -191,91 +224,122 @@ export default function Auth() {
                                 </div>
                             )}
 
-                            <form onSubmit={handleSignupSubmit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
+                            {!showOtpStep ? (
+                                <form onSubmit={handleSignupSubmit} className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold text-[#4B5563]">First Name</Label>
+                                            <Input
+                                                required
+                                                placeholder="John"
+                                                value={signupFirstName}
+                                                onChange={(e) => setSignupFirstName(e.target.value)}
+                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold text-[#4B5563]">Last Name</Label>
+                                            <Input
+                                                required
+                                                placeholder="Doe"
+                                                value={signupLastName}
+                                                onChange={(e) => setSignupLastName(e.target.value)}
+                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold text-[#4B5563]">First Name</Label>
+                                        <Label className="text-xs font-semibold text-[#4B5563]">Email Address</Label>
                                         <Input
                                             required
-                                            placeholder="John"
-                                            value={signupFirstName}
-                                            onChange={(e) => setSignupFirstName(e.target.value)}
+                                            type="email"
+                                            placeholder="john@example.com"
+                                            value={signupEmail}
+                                            onChange={(e) => setSignupEmail(e.target.value)}
                                             className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
                                         />
                                     </div>
+
                                     <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold text-[#4B5563]">Last Name</Label>
+                                        <Label className="text-xs font-semibold text-[#4B5563]">Phone Number</Label>
                                         <Input
-                                            required
-                                            placeholder="Doe"
-                                            value={signupLastName}
-                                            onChange={(e) => setSignupLastName(e.target.value)}
+                                            type="tel"
+                                            placeholder="+1 234 567 8900"
+                                            value={signupPhone}
+                                            onChange={(e) => setSignupPhone(e.target.value)}
                                             className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
                                         />
                                     </div>
-                                </div>
 
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-[#4B5563]">Email Address</Label>
-                                    <Input
-                                        required
-                                        type="email"
-                                        placeholder="john@example.com"
-                                        value={signupEmail}
-                                        onChange={(e) => setSignupEmail(e.target.value)}
-                                        className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold text-[#4B5563]">Password</Label>
+                                        <div className="relative">
+                                            <Input
+                                                required
+                                                type={showSignupPassword ? "text" : "password"}
+                                                placeholder="8+ characters"
+                                                value={signupPassword}
+                                                onChange={(e) => setSignupPassword(e.target.value)}
+                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B]"
+                                            />
+                                            <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
+                                                {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-[#4B5563]">Phone Number</Label>
-                                    <Input
-                                        type="tel"
-                                        placeholder="+1 234 567 8900"
-                                        value={signupPhone}
-                                        onChange={(e) => setSignupPhone(e.target.value)}
-                                        className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold text-[#4B5563]">Confirm Password</Label>
+                                        <div className="relative">
+                                            <Input
+                                                required
+                                                type={showSignupConfirmPassword ? "text" : "password"}
+                                                placeholder="Confirm password"
+                                                value={signupConfirmPassword}
+                                                onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B]"
+                                            />
+                                            <button type="button" onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
+                                                {showSignupConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-[#4B5563]">Password</Label>
-                                    <div className="relative">
+                                    <Button disabled={isSubmitting} type="submit" className="w-full h-12 text-base font-bold bg-[#00875B] text-white hover:bg-[#006E4A] rounded-lg shadow-sm transition-all mt-4">
+                                        {isSubmitting ? "Sending OTP..." : "Create Account"}
+                                    </Button>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold text-[#4B5563]">Verification Code</Label>
                                         <Input
                                             required
-                                            type={showSignupPassword ? "text" : "password"}
-                                            placeholder="8+ characters"
-                                            value={signupPassword}
-                                            onChange={(e) => setSignupPassword(e.target.value)}
-                                            className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B]"
+                                            type="text"
+                                            maxLength={6}
+                                            placeholder="123456"
+                                            value={otpCode}
+                                            onChange={(e) => setOtpCode(e.target.value)}
+                                            className="h-14 text-center text-2xl tracking-[0.5em] font-mono bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
                                         />
-                                        <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
-                                            {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </div>
+
+                                    <Button disabled={isSubmitting} type="submit" className="w-full h-12 text-base font-bold bg-[#00875B] text-white hover:bg-[#006E4A] rounded-lg shadow-sm transition-all mt-4">
+                                        {isSubmitting ? "Verifying..." : "Verify & Create Account"}
+                                    </Button>
+
+                                    <div className="text-center mt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowOtpStep(false)}
+                                            className="text-sm text-[#6B7280] hover:text-[#00875B] underline"
+                                        >
+                                            Go back to edit details
                                         </button>
                                     </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-[#4B5563]">Confirm Password</Label>
-                                    <div className="relative">
-                                        <Input
-                                            required
-                                            type={showSignupConfirmPassword ? "text" : "password"}
-                                            placeholder="Confirm password"
-                                            value={signupConfirmPassword}
-                                            onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                                            className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B]"
-                                        />
-                                        <button type="button" onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
-                                            {showSignupConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <Button disabled={isSubmitting} type="submit" className="w-full h-12 text-base font-bold bg-[#00875B] text-white hover:bg-[#006E4A] rounded-lg shadow-sm transition-all mt-4">
-                                    {isSubmitting ? "Creating Account..." : "Create Account"}
-                                </Button>
-                            </form>
+                                </form>
+                            )}
 
                             <div className="mt-8 text-center">
                                 <p className="text-sm text-[#6B7280]">Already have an account? <button onClick={toggleMode} className="text-[#00875B] font-bold hover:underline">Sign In</button></p>

@@ -133,11 +133,12 @@ export default function Users() {
                 }
             } else {
                 const errorData = await response.json();
-                toast.error(errorData.error || "Operation failed");
+                console.error("Server error data:", errorData);
+                toast.error(errorData.error || errorData.message || "Operation failed");
             }
         } catch (error) {
             console.error("Error processing user:", error);
-            toast.error("An error occurred");
+            toast.error("An error occurred. Check console for details.");
         }
     };
 
