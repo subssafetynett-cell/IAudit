@@ -39,7 +39,9 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: 'subs.safetynett@gmail.com',
         pass: 'wdve zudb tzwf spyo'
-    }
+    },
+    connectionTimeout: 5000, // 5 seconds
+    greetingTimeout: 5000    // 5 seconds
 });
 
 // Temporary in-memory store for OTPs - REMOVED for AWS scalability
