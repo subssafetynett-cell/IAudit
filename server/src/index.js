@@ -10,11 +10,13 @@ dotenv.config();
 
 // Auto-apply database schema changes in production
 try {
-    console.log('Synchronizing database schema...');
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    console.log('Synchronizing database schema using local binary...');
+    // Use the local node_modules binary instead of npx, as npx may not be in the PATH when run via pm2 or systemd on EC2
+    execSync('./node_modules/.bin/prisma db push --accept-data-loss', { stdio: 'inherit' });
     console.log('Database synchronization completed.');
 } catch (error) {
     console.error('Failed to synchronize database. Schema might be out of date:', error.message);
+    console.log('You can manually trigger a sync by hitting /api/admin/upgrade-db');
 }
 
 const app = express();
@@ -81,6 +83,18 @@ app.get('/', (req, res) => {
     res.send('AuditMate Backend is running.');
 });
 
+// Admin Route to manually force DB Schema push 
+app.get('/api/admin/upgrade-db', (req, res) => {
+    try {
+        console.log('Manual DB upgrade requested...');
+        const output = execSync('./node_modules/.bin/prisma db push --accept-data-loss', { encoding: 'utf-8' });
+        res.status(200).send(`<pre>Database Synchronized Successfully!\n\n${output}</pre>`);
+    } catch (error) {
+        console.error('Manual manual DB sync failed:', error);
+        res.status(500).send(`<pre>Failed to synchronize database:\n\n${error.message}\n\n${error.stdout || ''}\n${error.stderr || ''}</pre>`);
+    }
+});
+
 // Example route to get all companies (including sites and departments)
 app.get('/api/companies', async (req, res) => {
     const { userId } = req.query;
@@ -100,8 +114,8 @@ app.get('/api/companies', async (req, res) => {
         });
         res.json(companies);
     } catch (error) {
-        console.error('Failed to fetch companies:', error);
-        res.status(500).json({ error: 'Failed to fetch companies' });
+        console.error('Failed to fetch companies. Check if DB schema is up-to-date (e.g. missing userId on Site):', error);
+        res.status(500).json({ error: 'Failed to fetch companies', details: error.message || String(error) });
     }
 });
 
