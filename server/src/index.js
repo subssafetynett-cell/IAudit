@@ -4,8 +4,18 @@ import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import prisma from './prisma.js';
 import bcrypt from 'bcrypt';
+import { execSync } from 'child_process';
 
 dotenv.config();
+
+// Auto-apply database schema changes in production
+try {
+    console.log('Synchronizing database schema...');
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    console.log('Database synchronization completed.');
+} catch (error) {
+    console.error('Failed to synchronize database. Schema might be out of date:', error.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,7 +23,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
     origin: ['https://apps.iaudit.global', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080'], // Allow production and local development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires']
 }));
 app.use(express.json({ limit: '50mb' }));
 
