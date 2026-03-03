@@ -189,16 +189,30 @@ const AuditProgramPage = () => {
     const handleDownloadPDF = async (plan: any, executionTitle: string, program?: any) => {
         const doc = new jsPDF();
 
-        // Add Logo
+        // Add Logo - compressed via canvas to prevent huge file sizes
         try {
             const response = await fetch("/iAudit Global-01.png");
             const blob = await response.blob();
-            const base64 = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(blob);
+            const base64Compressed = await new Promise<string>((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Max 120x120px, 60% JPEG quality
+                    const MAX = 120;
+                    const canvas = document.createElement("canvas");
+                    let { width, height } = img;
+                    if (width > MAX || height > MAX) {
+                        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                        else { width = Math.round(width * MAX / height); height = MAX; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL("image/jpeg", 0.6));
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(blob);
             });
-            doc.addImage(base64, 'PNG', 20, 10, 25, 25);
+            doc.addImage(base64Compressed, 'JPEG', 20, 10, 25, 25);
         } catch (error) {
             console.error("Failed to load logo for PDF", error);
         }
@@ -278,11 +292,32 @@ const AuditProgramPage = () => {
     };
 
     const handleDownloadDocx = async (plan: any, executionTitle: string, program?: any) => {
-        // Fetch logo image for Docx
+        // Fetch logo image for Docx - compressed via canvas to prevent huge file sizes
         let logoBuffer: ArrayBuffer | null = null;
         try {
             const response = await fetch("/iAudit Global-01.png");
-            logoBuffer = await response.arrayBuffer();
+            const blob = await response.blob();
+            logoBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX = 120;
+                    const canvas = document.createElement("canvas");
+                    let { width, height } = img;
+                    if (width > MAX || height > MAX) {
+                        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                        else { width = Math.round(width * MAX / height); height = MAX; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob((compressedBlob) => {
+                        if (compressedBlob) compressedBlob.arrayBuffer().then(resolve).catch(reject);
+                        else reject(new Error("Canvas toBlob returned null"));
+                    }, "image/jpeg", 0.6);
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(blob);
+            });
         } catch (error) {
             console.error("Failed to fetch logo for Word doc:", error);
         }
