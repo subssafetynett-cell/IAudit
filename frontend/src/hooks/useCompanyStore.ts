@@ -31,7 +31,13 @@ export function useCompanyStore() {
   const fetchCompanies = async () => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const response = await fetch(`${API_URL}/companies?userId=${user.id}`);
+      const response = await fetch(`${API_URL}/companies?userId=${user.id}&_t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         globalCompanies = data.map((c: any) => ({

@@ -129,7 +129,7 @@ app.post('/api/companies/:companyId/sites', async (req, res) => {
         res.status(201).json(site);
     } catch (error) {
         console.error('Error creating site:', error);
-        res.status(500).json({ error: 'Failed to create site' });
+        res.status(500).json({ error: 'Failed to create site', details: error.message || String(error) });
     }
 });
 
