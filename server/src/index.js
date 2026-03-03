@@ -31,6 +31,15 @@ app.use((req, res, next) => {
     next();
 });
 
+// Cache Control middleware to prevent stale API responses on AWS/Netlify
+app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    next();
+});
+
 const router = express.Router();
 
 // Email Transporter Configuration
@@ -107,8 +116,8 @@ app.post('/api/companies/:companyId/sites', async (req, res) => {
                 state,
                 country,
                 postalCode,
-                latitude: latitude ? parseFloat(latitude) : null,
-                longitude: longitude ? parseFloat(longitude) : null,
+                latitude: (latitude && latitude !== "") ? parseFloat(latitude) : null,
+                longitude: (longitude && longitude !== "") ? parseFloat(longitude) : null,
                 contactName,
                 contactPosition,
                 contactNumber,
@@ -164,8 +173,8 @@ app.put('/api/sites/:id', async (req, res) => {
                 state,
                 country,
                 postalCode,
-                latitude: latitude ? parseFloat(latitude) : null,
-                longitude: longitude ? parseFloat(longitude) : null,
+                latitude: (latitude && latitude !== "") ? parseFloat(latitude) : null,
+                longitude: (longitude && longitude !== "") ? parseFloat(longitude) : null,
                 contactName,
                 contactPosition,
                 contactNumber,

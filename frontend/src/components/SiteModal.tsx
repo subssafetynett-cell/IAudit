@@ -63,7 +63,8 @@ export default function SiteModal({ open, onClose, onSubmit, initialData, mode =
             setError("Site name is required");
             return;
         }
-        onSubmit({
+
+        const payload = {
             name: trimmedName,
             description: description.trim(),
             siteType,
@@ -73,14 +74,21 @@ export default function SiteModal({ open, onClose, onSubmit, initialData, mode =
             state: state.trim(),
             country: country.trim(),
             postalCode: postalCode.trim(),
-            latitude: latitude ? parseFloat(latitude) : undefined,
-            longitude: longitude ? parseFloat(longitude) : undefined,
+            latitude: latitude && latitude.trim() !== "" && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : undefined,
+            longitude: longitude && longitude.trim() !== "" && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : undefined,
             contactName: contactName.trim(),
             contactPosition: contactPosition.trim(),
             contactNumber: contactNumber.trim(),
             email: email.trim(),
-        });
-        onClose();
+        };
+
+        try {
+            onSubmit(payload);
+            onClose();
+        } catch (err: any) {
+            console.error("Site creation error:", err);
+            setError(err.message || "An unexpected error occurred while creating the site");
+        }
     };
 
     return (

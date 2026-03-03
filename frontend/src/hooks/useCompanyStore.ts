@@ -31,7 +31,7 @@ export function useCompanyStore() {
   const fetchCompanies = async () => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const response = await fetch(`${API_URL}/companies?userId=${user.id}`);
+      const response = await fetch(`${API_URL}/companies?userId=${user.id}&t=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
         globalCompanies = data.map((c: any) => ({
@@ -287,6 +287,9 @@ export function useCompanyStore() {
             : c
         );
         notify();
+      } else {
+        const err = await response.json();
+        console.error("Failed to delete department details:", err);
       }
     } catch (error) {
       console.error("Failed to delete department:", error);
