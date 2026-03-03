@@ -13,6 +13,7 @@ try {
     console.log('Synchronizing database schema using local binary...');
     // Use the local node_modules binary instead of npx, as npx may not be in the PATH when run via pm2 or systemd on EC2
     execSync('./node_modules/.bin/prisma db push --accept-data-loss', { stdio: 'inherit' });
+    execSync('./node_modules/.bin/prisma generate', { stdio: 'inherit' });
     console.log('Database synchronization completed.');
 } catch (error) {
     console.error('Failed to synchronize database. Schema might be out of date:', error.message);
@@ -87,8 +88,16 @@ app.get('/', (req, res) => {
 app.get('/api/admin/upgrade-db', (req, res) => {
     try {
         console.log('Manual DB upgrade requested...');
-        const output = execSync('./node_modules/.bin/prisma db push --accept-data-loss', { encoding: 'utf-8' });
-        res.status(200).send(`<pre>Database Synchronized Successfully!\n\n${output}</pre>`);
+        const outputPush = execSync('./node_modules/.bin/prisma db push --accept-data-loss', { encoding: 'utf-8' });
+        const outputGen = execSync('./node_modules/.bin/prisma generate', { encoding: 'utf-8' });
+
+        res.status(200).send(`<pre>Database Synchronized Successfully!\n\n${outputPush}\n\n${outputGen}\n\nServer is automatically restarting to load the new schema. Please wait 5 seconds and refresh your app!</pre>`);
+
+        // Force PM2 to restart this process so V8 memory reloads the new Prisma Client
+        setTimeout(() => {
+            console.log("Restarting process to apply Prisma schema...");
+            process.exit(0);
+        }, 1000);
     } catch (error) {
         console.error('Manual manual DB sync failed:', error);
         res.status(500).send(`<pre>Failed to synchronize database:\n\n${error.message}\n\n${error.stdout || ''}\n${error.stderr || ''}</pre>`);
