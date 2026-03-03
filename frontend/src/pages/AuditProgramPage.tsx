@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { API_BASE_URL } from "@/config";
 import { TopNav } from "@/components/TopNav";
 import { Card, CardContent } from "@/components/ui/card";
@@ -129,7 +130,7 @@ const AuditProgramPage = () => {
 
         for (let i = 0; i < count; i++) {
             const monthLabel = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
-            const yearLabel = currentDate.getFullYear().toString().slice(-2);
+            const yearLabel = currentDate.getFullYear().toString();
             result.push(`${monthLabel} ${yearLabel}`);
 
             if (frequency === "Monthly") currentDate.setMonth(currentDate.getMonth() + 1);
@@ -564,7 +565,10 @@ const AuditProgramPage = () => {
                                                             </div>
                                                         </div>
                                                         <h3 className="text-lg font-black text-[#0F172A] leading-tight group-hover:text-emerald-600 transition-colors duration-300 uppercase line-clamp-2 mt-2">
-                                                            {exec.title.split(' - ')[0]} <span className="text-slate-400 font-medium normal-case block text-sm mt-1">{exec.title.split(' - ')[1]}</span>
+                                                            {exec.title.split(' - ')[0]}
+                                                            <span className="text-slate-400 font-medium normal-case block text-sm mt-1">
+                                                                {planExists ? format(new Date(plan.date), 'MMM dd, yyyy') : exec.title.split(' - ')[1]}
+                                                            </span>
                                                         </h3>
                                                     </div>
                                                     <div className="flex items-center gap-2">
@@ -633,7 +637,10 @@ const AuditProgramPage = () => {
                                                 <div className="flex flex-col gap-3">
                                                     <div className="flex items-center gap-2">
                                                         <h3 className={cn("text-lg font-bold tracking-tight", planExists ? "text-indigo-600" : "text-emerald-600")}>
-                                                            {exec.title}
+                                                            {planExists
+                                                                ? `${exec.title.split(' - ')[0]} - ${format(new Date(plan.date), 'MMM dd, yyyy')}`
+                                                                : exec.title
+                                                            }
                                                         </h3>
                                                         <Badge variant="outline" className="text-[10px] font-bold border-emerald-100 text-emerald-600 bg-emerald-50 rounded-lg">
                                                             {exec.siteName}

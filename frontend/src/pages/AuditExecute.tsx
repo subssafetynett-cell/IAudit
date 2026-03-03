@@ -79,7 +79,7 @@ const calculatePeriods = (frequency: string, duration: number) => {
     const monthLabel = currentDate
       .toLocaleString("default", { month: "short" })
       .toUpperCase();
-    const yearLabel = currentDate.getFullYear().toString().slice(-2);
+    const yearLabel = currentDate.getFullYear().toString();
     result.push(`${monthLabel} ${yearLabel}`);
     if (frequency === "Monthly")
       currentDate.setMonth(currentDate.getMonth() + 1);

@@ -155,7 +155,7 @@ const AuditPrograms = () => {
 
         for (let i = 0; i < count; i++) {
             const monthLabel = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
-            const yearLabel = currentDate.getFullYear().toString().slice(-2);
+            const yearLabel = currentDate.getFullYear().toString();
             result.push({
                 label: `${monthLabel} ${yearLabel}`
             });

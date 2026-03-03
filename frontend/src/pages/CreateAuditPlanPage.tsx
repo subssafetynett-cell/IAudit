@@ -180,12 +180,13 @@ const CreateAuditPlanPage = () => {
             const titleParts = execLabel.split(' - ');
             let initialDate = new Date();
             if (titleParts.length > 1) {
-                const dateStr = titleParts[titleParts.length - 1]; // "JAN 26"
+                const dateStr = titleParts[titleParts.length - 1]; // "JAN 2026" or "JAN 26"
                 const [monthStr, yearStr] = dateStr.split(' ');
                 if (monthStr && yearStr) {
                     const monthIndex = new Date(`${monthStr} 1, 2000`).getMonth();
                     if (!isNaN(monthIndex)) {
-                        const fullYear = parseInt(yearStr) + 2000;
+                        let fullYear = parseInt(yearStr);
+                        if (fullYear < 100) fullYear += 2000; // Handle 2-digit year "26" -> 2026
                         initialDate = new Date(fullYear, monthIndex, 1);
                     }
                 }
