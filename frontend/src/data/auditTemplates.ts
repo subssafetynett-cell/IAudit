@@ -15,6 +15,7 @@ export interface ChecklistContent {
     actionBy?: string;
     closeDate?: string;
     assignTo?: string;
+    findingType?: "C" | "OFI" | "Min" | "Maj";
 }export interface ClauseChecklistContent {
     clauseId: string; // e.g., "5"
     title: string; // "Leadership and Commitment"

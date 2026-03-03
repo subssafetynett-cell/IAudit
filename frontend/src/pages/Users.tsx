@@ -97,7 +97,17 @@ export default function Users() {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             const response = await fetch(`${API_URL}/users?creatorId=${user.id}`);
             if (response.ok) {
-                const data = await response.json();
+                const responseData = await response.json();
+                let data = Array.isArray(responseData) ? responseData : [];
+
+                // Add the currently logged in user to the list if they aren't already there
+                if (user && user.id) {
+                    const isCurrentUserInList = data.some((u: any) => u.id === user.id);
+                    if (!isCurrentUserInList) {
+                        data.unshift(user);
+                    }
+                }
+
                 setUsers(data);
             }
         } catch (error) {
@@ -129,6 +139,9 @@ export default function Users() {
                     toast.success("User created successfully!");
                 } else {
                     setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+                    if (updatedUser.id === user.id) {
+                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                    }
                     toast.success("User updated successfully!");
                 }
             } else {
@@ -153,6 +166,13 @@ export default function Users() {
             if (response.ok) {
                 const updatedUser = await response.json();
                 setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+
+                // Also update local storage if it's the current user
+                const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+                if (loggedInUser.id === updatedUser.id) {
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+
                 toast.success(`User set to ${updatedUser.isActive ? 'Active' : 'Inactive'}`);
             } else {
                 toast.error("Failed to update status");

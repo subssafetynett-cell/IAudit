@@ -64,6 +64,7 @@ interface SavedAssessment {
     auditRepresentatives?: string;
     contactEmail?: string;
     auditScope?: string;
+    auditorPosition?: string;
 }
 
 // --- Data ---
@@ -289,6 +290,7 @@ const SelfAssessment = () => {
     const [standard, setStandard] = useState<Standard | "">("");
     const [companyName, setCompanyName] = useState(""); // Auditor's Company
     const [auditorName, setAuditorName] = useState("");
+    const [auditorPosition, setAuditorPosition] = useState("");
     const [auditCompany, setAuditCompany] = useState(""); // Company Being Audited
     const [questions, setQuestions] = useState<Question[]>([]);
 
@@ -342,6 +344,7 @@ const SelfAssessment = () => {
         setStandard(assessment.standard);
         setCompanyName(assessment.companyName);
         setAuditorName(assessment.auditorName);
+        setAuditorPosition(assessment.auditorPosition || "");
         setAuditCompany(assessment.auditCompany || "");
         setQuestions(assessment.questions);
         setEmail(assessment.email || "");
@@ -366,6 +369,10 @@ const SelfAssessment = () => {
         }
         if (!auditorName.trim()) {
             toast.error("Please enter the Auditor Name.");
+            return;
+        }
+        if (!auditorPosition.trim()) {
+            toast.error("Please enter the Auditor Position.");
             return;
         }
         if (!auditLocation.trim()) {
@@ -502,6 +509,7 @@ const SelfAssessment = () => {
             id: Date.now().toString(),
             companyName,
             auditorName,
+            auditorPosition,
             auditCompany,
             standard: standard as Standard,
             score,
@@ -650,6 +658,7 @@ const SelfAssessment = () => {
         setAuditRepresentatives("");
         setContactEmail("");
         setAuditScope("");
+        setAuditorPosition("");
 
     };
 
@@ -662,6 +671,7 @@ const SelfAssessment = () => {
         // Data sources
         const cName = assessmentData?.companyName || companyName;
         const aName = assessmentData?.auditorName || auditorName;
+        const auPos = assessmentData?.auditorPosition || auditorPosition;
         const audComp = assessmentData?.auditCompany || auditCompany;
         const std = assessmentData?.standard || standard;
         const qs = assessmentData?.questions || questions;
@@ -784,7 +794,8 @@ const SelfAssessment = () => {
         doc.setTextColor(16, 185, 129); // Emerald-600
         // Adjust title position to be below the user logo standard space
         // Standard space for logo: ~40 units. Start text below that.
-        doc.text("Self Assessment Report", 105, headerBottom, { align: "center" });
+        doc.text("Self Assessment Report", 105, headerBottom + 10, { align: "center" });
+        headerBottom += 20; // Increase header bottom for subsequent elements
 
         const addFooter = (doc: jsPDF) => {
             const pageHeight = doc.internal.pageSize.getHeight();
@@ -839,6 +850,7 @@ const SelfAssessment = () => {
             ...(audLoc ? [["Location of Audit", audLoc]] : []),
             ...(audReps ? [["Company Representatives", audReps]] : []),
             ...(auName ? [["Name of Auditor", auName]] : []),
+            ...(auPos ? [["Auditor Position", auPos]] : []),
             ...(contact ? [["Contact email", contact]] : []),
             ...(scope ? [["Scope of Audit", scope]] : []),
         ];
@@ -1120,6 +1132,7 @@ const SelfAssessment = () => {
             // Data sources
             const cName = assessmentData?.companyName || companyName;
             const aName = assessmentData?.auditorName || auditorName;
+            const auPos = assessmentData?.auditorPosition || auditorPosition;
             const audComp = assessmentData?.auditCompany || auditCompany;
             const std = assessmentData?.standard || standard;
             const qs = assessmentData?.questions || questions;
@@ -1150,21 +1163,40 @@ const SelfAssessment = () => {
             const auName = assessmentData?.auditorName || auditorName;
             const contact = assessmentData?.contactEmail || contactEmail;
             const scope = assessmentData?.auditScope || auditScope;
+            const auPosVal = assessmentData?.auditorPosition || auditorPosition;
+
+            // Load User Logo if exists, else fallback to iAudit
+            let logoBlob: ArrayBuffer | null = null;
+            if (userCompany?.logo) {
+                try {
+                    const response = await fetch(userCompany.logo);
+                    logoBlob = await response.arrayBuffer();
+                } catch (e) {
+                    console.error("Failed to load user logo for Word", e);
+                }
+            }
+
+            if (!logoBlob) {
+                const logoUrl = "/iAudit Global-01.png";
+                const imageResponse = await fetch(logoUrl);
+                logoBlob = await imageResponse.arrayBuffer();
+            }
 
             const doc = new Document({
                 sections: [{
                     properties: {},
                     children: [
-                        // Header / Logo
                         new Paragraph({
                             children: [
                                 new ImageRun({
-                                    data: imageBlob,
-                                    transformation: { width: 200, height: 80 }
+                                    data: logoBlob,
+                                    transformation: { width: 150, height: 60 }
                                 })
-                            ]
+                            ],
+                            alignment: AlignmentType.LEFT
                         }),
                         new Paragraph({ text: "" }), // Spacer
+                        new Paragraph({ text: "" }), // Extra Spacer
 
                         // Title
                         new Paragraph({
@@ -1184,6 +1216,7 @@ const SelfAssessment = () => {
                                 ...(audLoc ? [["Location of Audit", audLoc] as [string, string]] : []),
                                 ...(audReps ? [["Company Representatives", audReps] as [string, string]] : []),
                                 ...(auName ? [["Name of Auditor", auName] as [string, string]] : []),
+                                ...(auPosVal ? [["Auditor Position", auPosVal] as [string, string]] : []),
                                 ...(contact ? [["Contact email", contact] as [string, string]] : []),
                                 ...(scope ? [["Scope of Audit", scope] as [string, string]] : []),
                             ];
@@ -1675,6 +1708,20 @@ const SelfAssessment = () => {
                                             placeholder="Enter auditor name"
                                             value={auditorName}
                                             onChange={(e) => setAuditorName(e.target.value)}
+                                            className="h-12 rounded-xl border-slate-200 bg-slate-50 shadow-sm focus-visible:ring-1 focus-visible:ring-[#213847]/40 w-full"
+                                        />
+                                    </div>
+
+                                    {/* 6.1 Auditor Position */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="auditorPosition" className="text-sm font-semibold text-slate-700">
+                                            Auditor Position <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="auditorPosition"
+                                            placeholder="Enter auditor position"
+                                            value={auditorPosition}
+                                            onChange={(e) => setAuditorPosition(e.target.value)}
                                             className="h-12 rounded-xl border-slate-200 bg-slate-50 shadow-sm focus-visible:ring-1 focus-visible:ring-[#213847]/40 w-full"
                                         />
                                     </div>

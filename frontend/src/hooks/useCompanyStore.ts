@@ -144,10 +144,11 @@ export function useCompanyStore() {
   // Sites
   const addSite = async (companyId: string, data: any) => {
     try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
       const response = await fetch(`${API_URL}/companies/${companyId}/sites`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, userId: user.id }),
       });
       if (response.ok) {
         const newSite = await response.json();

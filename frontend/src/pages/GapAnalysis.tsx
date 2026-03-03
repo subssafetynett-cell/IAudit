@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Plus, Trash2, CheckCircle2, AlertCircle, XCircle, Award, Download, Eye, FileText, ClipboardList, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2, CheckCircle2, AlertCircle, XCircle, Award, Download, Eye, FileText, ClipboardList, Search, Upload, X as XIcon, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -199,11 +199,25 @@ const GapAnalysis = () => {
             text: newQuestionText,
             finding: null,
             actionPlan: "",
-            evidence: ""
+            evidence: "",
+            evidenceImage: ""
         };
         setQuestions(prev => [...prev, newQuestion]);
         toast.success("New question added");
         setIsAddQuestionOpen(false);
+    };
+
+    const handleEvidenceImageUpload = (id: string, file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            handleAnswerChange(id, "evidenceImage", dataUrl);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveEvidenceImage = (id: string) => {
+        handleAnswerChange(id, "evidenceImage", "");
     };
 
     const handleDeleteQuestion = (id: string) => {
@@ -708,6 +722,50 @@ const GapAnalysis = () => {
                                                     onChange={e => handleAnswerChange(q.id, "evidence", e.target.value)}
                                                     className="min-h-[80px]"
                                                 />
+                                            </div>
+
+                                            {/* Evidence Image Upload – spans full width */}
+                                            <div className="md:col-span-2 space-y-3">
+                                                <Label className="text-xs uppercase tracking-wide text-slate-500 font-bold flex items-center gap-1.5">
+                                                    <ImageIcon className="w-3.5 h-3.5" /> Upload Evidence Image
+                                                </Label>
+
+                                                {q.evidenceImage ? (
+                                                    <div className="relative inline-block">
+                                                        <img
+                                                            src={q.evidenceImage}
+                                                            alt="Evidence"
+                                                            className="max-h-48 rounded-lg border border-slate-200 object-contain shadow-sm"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveEvidenceImage(q.id)}
+                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                                                            title="Remove image"
+                                                        >
+                                                            <XIcon className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <label
+                                                        htmlFor={`evidence-image-${q.id}`}
+                                                        className="flex items-center gap-2 w-fit cursor-pointer border border-dashed border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-500 hover:border-[#213847] hover:text-[#213847] hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        <Upload className="w-4 h-4" />
+                                                        Choose image…
+                                                        <input
+                                                            id={`evidence-image-${q.id}`}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (file) handleEvidenceImageUpload(q.id, file);
+                                                                e.target.value = ""; // reset so same file can be re-uploaded
+                                                            }}
+                                                        />
+                                                    </label>
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>

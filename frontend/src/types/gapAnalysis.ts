@@ -9,6 +9,7 @@ export interface AuditQuestion {
     finding: FindingType;
     actionPlan: string;
     evidence: string;
+    evidenceImage?: string; // base64 data URL of uploaded image
 }
 
 export interface SavedGapAnalysis {

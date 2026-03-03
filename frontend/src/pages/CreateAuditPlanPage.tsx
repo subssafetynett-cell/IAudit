@@ -137,57 +137,86 @@ const CreateAuditPlanPage = () => {
         fetchUsers();
     }, []);
 
-    // Safety check for missing state
+    // Safety check for missing state — only redirect when there is no usable state at all
     useEffect(() => {
-        if (!isEditMode && (!execution || !site)) {
+        if (!isEditMode && !execution && !plan) {
             toast.error("Missing required audit details. Redirecting...");
             navigate("/audit-program");
         }
-    }, [execution, site, isEditMode, navigate]);
+    }, [execution, plan, isEditMode, navigate]);
 
     // Pre-populate data
     useEffect(() => {
-        if (!isEditMode && (!execution || !site)) return; // Skip if missing required state
+        if (!isEditMode && !execution && !plan) return; // Skip if meaningfully missing state
 
-        const plan = location.state?.plan;
+        const existingPlan = location.state?.plan;
 
-        if (plan) {
+        if (existingPlan) {
             // Edit Mode
-            setAuditName(plan.auditName || "");
-            setSelectedTemplateId(plan.templateId || "");
-            if (plan.date) setAuditDate(new Date(plan.date));
-            setAuditLocation(plan.location || "");
-            setAuditScope(plan.scope || "");
-            setAuditObjective(plan.objective || "");
-            setAuditCriteria(plan.criteria || "");
+            setAuditName(existingPlan.auditName || "");
+            setSelectedTemplateId(existingPlan.templateId || "");
+            if (existingPlan.date) setAuditDate(new Date(existingPlan.date));
+            setAuditLocation(existingPlan.location || "");
+            setAuditScope(existingPlan.scope || "");
+            setAuditObjective(existingPlan.objective || "");
+            setAuditCriteria(existingPlan.criteria || "");
 
-            if (plan.leadAuditorId) setLeadAuditorId(plan.leadAuditorId.toString());
-            // Database stores array, currently UI handles one. 
-            // The plan object from backend includes 'auditors' relation array.
-            if (plan.auditors && plan.auditors.length > 0) {
-                // Check if auditors is array of objects (from include) or IDs. 
-                // Based on GET endpoint include: { auditors: true }, it's array of User objects.
-                setSelectedAuditorId(plan.auditors[0].id.toString());
+            if (existingPlan.leadAuditorId) setLeadAuditorId(existingPlan.leadAuditorId.toString());
+            if (existingPlan.auditors && existingPlan.auditors.length > 0) {
+                // If the auditors field is a JSON string it needs to be parsed, but typically it is populated as objects or ids
+                const firstAuditor = existingPlan.auditors[0];
+                setSelectedAuditorId(typeof firstAuditor === 'object' ? firstAuditor.id?.toString() : firstAuditor.toString());
             }
 
-            if (plan.itinerary) {
-                setItinerary(typeof plan.itinerary === 'string' ? JSON.parse(plan.itinerary) : plan.itinerary);
+            if (existingPlan.itinerary) {
+                setItinerary(typeof existingPlan.itinerary === 'string' ? JSON.parse(existingPlan.itinerary) : existingPlan.itinerary);
             }
-        } else if (execution && site) {
+        } else if (execution) {
             // Create Mode Defaults
-            setAuditName(`${execution.name || 'New Audit'} - ${format(new Date(), 'MMM yyyy')}`);
-            setAuditDate(new Date());
-            setAuditLocation(`${site.name}, ${site.city}, ${site.country}`);
-            setAuditScope(`Audit of ${site.name} against ISO 14001:2015 standards, focusing on key operational areas.`);
-            setAuditObjective("To verify compliance with ISO 14001:2015 and internal procedures, and to identify areas for improvement.");
-            setAuditCriteria("ISO 14001:2015, Internal EHS Manual, Local Regulations");
+            const execLabel = execution.title || execution.name || 'New Audit';
+            setAuditName(`${execLabel} - ${format(new Date(), 'MMM yyyy')}`);
+
+            // Try to extract date from the title if it formats like "Annual Quality Audit - JAN 26"
+            const titleParts = execLabel.split(' - ');
+            let initialDate = new Date();
+            if (titleParts.length > 1) {
+                const dateStr = titleParts[titleParts.length - 1]; // "JAN 26"
+                const [monthStr, yearStr] = dateStr.split(' ');
+                if (monthStr && yearStr) {
+                    const monthIndex = new Date(`${monthStr} 1, 2000`).getMonth();
+                    if (!isNaN(monthIndex)) {
+                        const fullYear = parseInt(yearStr) + 2000;
+                        initialDate = new Date(fullYear, monthIndex, 1);
+                    }
+                }
+            }
+            setAuditDate(initialDate);
+
+            // Set ISO Standard defaults
+            const currentStandard = program?.isoStandard || "ISO 14001:2015";
+
+            if (site) {
+                // Formatting Location: site.name, site.city, site.country
+                const parts = [site.name, site.city, site.country].filter(Boolean);
+                setAuditLocation(parts.join(', '));
+                setAuditScope(`Audit of ${site.name} against ${currentStandard} standards, focusing on key operational areas.`);
+            } else {
+                setAuditScope(`Audit against ${currentStandard} standards, focusing on key operational areas.`);
+            }
+
+            setAuditObjective(`To verify compliance with ${currentStandard} and internal procedures, and to identify areas for improvement.`);
+            setAuditCriteria(`${currentStandard}, Internal Manual, Local Regulations`);
 
             if (program) {
                 if (program.leadAuditor) {
                     setLeadAuditorId(program.leadAuditor.id.toString());
+                } else if (program.leadAuditorId) {
+                    setLeadAuditorId(program.leadAuditorId.toString());
                 }
+
                 if (program.auditors && program.auditors.length > 0) {
-                    setSelectedAuditorId(program.auditors[0].id.toString());
+                    const firstAuditor = program.auditors[0];
+                    setSelectedAuditorId(typeof firstAuditor === 'object' ? firstAuditor.id?.toString() : firstAuditor.toString());
                 }
 
                 // Auto-select template based on ISO Standard
@@ -199,7 +228,7 @@ const CreateAuditPlanPage = () => {
                 }
             }
         }
-    }, [execution, program, site, location.state, isEditMode]);
+    }, [execution, program, site, location.state, isEditMode, plan]);
 
     const handleItineraryChange = (id: string, field: keyof ItineraryItem, value: string) => {
         setItinerary(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
@@ -331,12 +360,20 @@ const CreateAuditPlanPage = () => {
                                 />
                             </div>
 
-                            <div className="space-y-2 md:col-span-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Select Template</Label>
+
+                            {/* ── Template Picker – highlighted ── */}
+                            <div className="md:col-span-2 rounded-xl border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 to-white p-4 shadow-sm space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-black text-indigo-700 uppercase tracking-wide flex items-center gap-1.5">
+                                        <FileText className="w-3.5 h-3.5" />
+                                        Choose Audit Template
+                                    </Label>
+                                    <span className="bg-amber-400 text-amber-900 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">Required</span>
+                                </div>
                                 <div className="flex gap-2">
                                     <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                                        <SelectTrigger className="font-semibold bg-slate-50 border-slate-200 h-10 flex-1">
-                                            <SelectValue placeholder="Choose an audit template..." />
+                                        <SelectTrigger className="font-semibold bg-white border-indigo-200 h-11 flex-1 focus:ring-indigo-400 shadow-sm">
+                                            <SelectValue placeholder="Choose an audit template…" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {auditTemplates
@@ -352,15 +389,31 @@ const CreateAuditPlanPage = () => {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            className="h-10 w-10 shrink-0"
+                                            className="h-11 w-11 shrink-0 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                                             onClick={() => setPreviewTemplateId(selectedTemplateId)}
                                             title="Preview Template"
                                         >
-                                            <Eye className="w-4 h-4 text-slate-600" />
+                                            <Eye className="w-4 h-4" />
                                         </Button>
                                     )}
                                 </div>
+                                {selectedTemplateId && (() => {
+                                    const t = auditTemplates.find(t => t.id === selectedTemplateId);
+                                    return t ? (
+                                        <div className="flex items-center gap-3 p-3 bg-white border border-indigo-100 rounded-xl shadow-sm">
+                                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                                                <FileText className="w-4 h-4 text-indigo-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-800">{t.title}</p>
+                                                <p className="text-xs text-slate-500">{t.standard} · {t.content.length} {t.type === 'checklist' ? 'questions' : 'clauses'}</p>
+                                            </div>
+                                            <span className="ml-auto bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">Selected ✓</span>
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
+
 
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-slate-500 uppercase">Date</Label>

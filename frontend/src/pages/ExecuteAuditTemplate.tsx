@@ -36,6 +36,7 @@ const ExecuteAuditTemplate = () => {
         major: "0",
         minor: "0",
         ofi: "0",
+        compliant: "0",
         positive: "0",
     });
     const [auditFindings, setAuditFindings] = useState([
@@ -566,6 +567,8 @@ const ExecuteAuditTemplate = () => {
                                                         <TableHead className="bg-white p-0 w-16"></TableHead>
                                                         <TableHead className="font-bold text-white border-none px-4 py-3 text-center text-xs">OFIs</TableHead>
                                                         <TableHead className="bg-white p-0 w-16"></TableHead>
+                                                        <TableHead className="font-bold text-white border-none px-4 py-3 text-center text-xs">Compliant</TableHead>
+                                                        <TableHead className="bg-white p-0 w-16"></TableHead>
                                                         <TableHead className="font-bold text-white border-none px-4 py-3 text-center text-xs whitespace-nowrap">Positive Aspect</TableHead>
                                                         <TableHead className="bg-white p-0 w-16"></TableHead>
                                                     </TableRow>
@@ -588,12 +591,19 @@ const ExecuteAuditTemplate = () => {
                                                                 onChange={(e) => setSummaryCounts({ ...summaryCounts, minor: e.target.value })}
                                                             />
                                                         </TableCell>
-                                                        <TableCell className="p-0 bg-slate-800"></TableCell>
                                                         <TableCell className="p-0">
                                                             <Input
                                                                 className="border-0 focus-visible:ring-0 rounded-none bg-transparent h-10 px-2 shadow-none text-center font-bold"
                                                                 value={summaryCounts.ofi}
                                                                 onChange={(e) => setSummaryCounts({ ...summaryCounts, ofi: e.target.value })}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="p-0 bg-slate-800"></TableCell>
+                                                        <TableCell className="p-0">
+                                                            <Input
+                                                                className="border-0 focus-visible:ring-0 rounded-none bg-transparent h-10 px-2 shadow-none text-center font-bold"
+                                                                value={summaryCounts.compliant}
+                                                                onChange={(e) => setSummaryCounts({ ...summaryCounts, compliant: e.target.value })}
                                                             />
                                                         </TableCell>
                                                         <TableCell className="p-0 bg-slate-800"></TableCell>
@@ -875,6 +885,7 @@ const ExecuteAuditTemplate = () => {
                                                 <span className="text-sm font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap">Category of Finding:</span>
                                                 <div className="flex gap-2 flex-wrap">
                                                     {[
+                                                        { label: "Compliant (C)", value: "C" as const, color: "bg-emerald-500" },
                                                         { label: "OFI", value: "OFI" as const, color: "bg-amber-500" },
                                                         { label: "Minor N/C", value: "Minor" as const, color: "bg-orange-600" },
                                                         { label: "Major N/C", value: "Major" as const, color: "bg-red-600" },
@@ -962,6 +973,7 @@ const ExecuteAuditTemplate = () => {
                                             <span className="text-sm font-medium text-slate-700">Finding Type:</span>
                                             <div className="flex gap-2">
                                                 {[
+                                                    { label: 'Compliant (C)', value: 'C', color: 'bg-emerald-500 hover:bg-emerald-600' },
                                                     { label: 'OFI', value: 'OFI', color: 'bg-yellow-600 hover:bg-yellow-700' },
                                                     { label: 'Minor', value: 'Minor', color: 'bg-orange-600 hover:bg-orange-700' },
                                                     { label: 'Major', value: 'Major', color: 'bg-red-600 hover:bg-red-700' }
@@ -1154,20 +1166,18 @@ const ExecuteAuditTemplate = () => {
                                                     {/* Findings (Compliant / OFI / Minor / Major) */}
                                                     <TableCell className="p-2 align-top bg-slate-50/10">
                                                         <div className="flex flex-wrap gap-1 mb-2 justify-center">
-                                                            {['OFI', 'Min', 'Maj'].map(type => (
+                                                            {[{ val: 'C', label: 'Compliant (C)', color: 'bg-emerald-500' }, { val: 'OFI', label: 'Opportunity for Improvement', color: 'bg-amber-500' }, { val: 'Min', label: 'Minor Non-Conformity', color: 'bg-orange-600' }, { val: 'Maj', label: 'Major Non-Conformity', color: 'bg-red-600' }].map(opt => (
                                                                 <button
-                                                                    key={type}
-                                                                    onClick={() => handleChecklistChange(index, 'findings', type)}
+                                                                    key={opt.val}
+                                                                    onClick={() => handleChecklistChange(index, 'findings', opt.val)}
                                                                     className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold transition-all
-                                                                    ${checklistData[index]?.findings === type
-                                                                            ? type === 'OFI' ? 'bg-amber-500 text-white shadow-md scale-105'
-                                                                                : type === 'Min' ? 'bg-orange-600 text-white shadow-md scale-105'
-                                                                                    : 'bg-red-600 text-white shadow-md scale-105'
+                                                                    ${checklistData[index]?.findings === opt.val
+                                                                            ? `${opt.color} text-white shadow-md scale-105`
                                                                             : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
                                                                         }`}
-                                                                    title={type === 'OFI' ? 'Opportunity for Improvement' : type === 'Min' ? 'Minor Non-Conformity' : 'Major Non-Conformity'}
+                                                                    title={opt.label}
                                                                 >
-                                                                    {type}
+                                                                    {opt.val}
                                                                 </button>
                                                             ))}
                                                         </div>

@@ -85,6 +85,7 @@ const AuditProgramPage = () => {
     const [auditPlans, setAuditPlans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<"card" | "list">("card");
+    const [activeSiteId, setActiveSiteId] = useState<string>("all");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -92,7 +93,7 @@ const AuditProgramPage = () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const [sitesRes, programsRes, plansRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/sites`),
+                    fetch(`${API_BASE_URL}/api/sites?userId=${user.id}`),
                     fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`),
                     fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`)
                 ]);
@@ -414,18 +415,42 @@ const AuditProgramPage = () => {
                     </div>
                 </div>
 
+                {sites.length > 0 && (
+                    <Tabs defaultValue="all" value={activeSiteId} onValueChange={setActiveSiteId} className="w-full">
+                        <TabsList className="bg-transparent h-auto p-0 flex gap-8 border-b border-slate-200 w-full justify-start rounded-none">
+                            <TabsTrigger
+                                value="all"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#34967C] data-[state=active]:bg-transparent data-[state=active]:text-[#34967C] px-0 pb-2 text-base font-semibold text-slate-500 hover:text-slate-700 transition-all shadow-none"
+                            >
+                                All Sites
+                            </TabsTrigger>
+                            {sites.map(site => (
+                                <TabsTrigger
+                                    key={site.id}
+                                    value={site.id.toString()}
+                                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#34967C] data-[state=active]:bg-transparent data-[state=active]:text-[#34967C] px-0 pb-2 text-base font-semibold text-slate-500 hover:text-slate-700 transition-all shadow-none"
+                                >
+                                    {site.name}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                )}
+
                 {sites.length > 0 ? (
                     <div className="space-y-8 relative z-10">
                         {(() => {
-                            const allExecutions = auditPrograms.flatMap(p => {
-                                const site = sites.find(s => s.id === p.siteId);
-                                const executions = getAuditExecutions(p);
-                                return executions.map(exec => ({
-                                    ...exec,
-                                    siteName: site?.name || "N/A",
-                                    site: site // passing full site object for state navigation
-                                }));
-                            });
+                            const allExecutions = auditPrograms
+                                .filter(p => activeSiteId === "all" || p.siteId.toString() === activeSiteId)
+                                .flatMap(p => {
+                                    const site = sites.find(s => s.id === p.siteId);
+                                    const executions = getAuditExecutions(p);
+                                    return executions.map(exec => ({
+                                        ...exec,
+                                        siteName: site?.name || "N/A",
+                                        site: site // passing full site object for state navigation
+                                    }));
+                                });
 
                             if (allExecutions.length === 0) {
                                 return (

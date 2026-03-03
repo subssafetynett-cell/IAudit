@@ -7,6 +7,7 @@ import {
   Users as UsersIcon,
   BarChart3,
   ShieldCheck,
+  Search,
   ClipboardCheck,
   AlertCircle,
   AlertOctagon,
@@ -31,6 +32,8 @@ const Index = () => {
   const [auditPlans, setAuditPlans] = useState<any[]>([]);
   const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selfAssessments, setSelfAssessments] = useState<any[]>([]);
+  const [gapAnalyses, setGapAnalyses] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +48,15 @@ const Index = () => {
         if (usersRes.ok) setUsers(await usersRes.json());
         if (plansRes.ok) setAuditPlans(await plansRes.json());
         if (programsRes.ok) setAuditPrograms(await programsRes.json());
+
+        // Load Self Assessments from localStorage
+        const savedSelf = localStorage.getItem(`selfAssessments_${user.id}`);
+        if (savedSelf) setSelfAssessments(JSON.parse(savedSelf));
+
+        // Load Gap Analyses from localStorage
+        const savedGap = localStorage.getItem(`gapAnalyses_${user.id}`);
+        if (savedGap) setGapAnalyses(JSON.parse(savedGap));
+
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
         toast.error("Failed to load dashboard statistics");
@@ -59,6 +71,51 @@ const Index = () => {
   // Calculate Metrics
   const totalSites = companies.reduce((acc, c) => acc + (c.sites?.length || 0), 0);
   const totalDepts = companies.reduce((acc, c) => acc + (c.sites?.reduce((a, s) => a + (s.departments?.length || 0), 0) || 0), 0);
+
+  // Self Assessment Score distribution logic
+  // High (>=76%): Score >= 38
+  // Medium (48-75%): Score 24-37
+  // Low (<48%): Score < 24
+  const saHigh = selfAssessments.filter(a => a.score >= 38).length;
+  const saMedium = selfAssessments.filter(a => a.score >= 24 && a.score < 38).length;
+  const saLow = selfAssessments.filter(a => a.score < 24).length;
+  const totalSA = selfAssessments.length;
+
+  const saDistribution = [
+    { name: 'High (≥76%)', value: saHigh, color: '#10B981', percentage: totalSA > 0 ? `${Math.round((saHigh / totalSA) * 100)}%` : "0%" },
+    { name: 'Medium (48-75%)', value: saMedium, color: '#FBBF24', percentage: totalSA > 0 ? `${Math.round((saMedium / totalSA) * 100)}%` : "0%" },
+    { name: 'Low (<48%)', value: saLow, color: '#EF4444', percentage: totalSA > 0 ? `${Math.round((saLow / totalSA) * 100)}%` : "0%" },
+  ];
+
+  // Gap Analysis Score distribution logic (0-100 score in GapAnalysis.tsx)
+  const gapCompliant = gapAnalyses.filter(a => {
+    const total = a.questions?.length || 0;
+    const comply = a.questions?.filter((q: any) => q.finding === 'Comply').length || 0;
+    const score = total > 0 ? (comply / total) * 100 : 0;
+    return score >= 70;
+  }).length;
+
+  const gapPartial = gapAnalyses.filter(a => {
+    const total = a.questions?.length || 0;
+    const comply = a.questions?.filter((q: any) => q.finding === 'Comply').length || 0;
+    const score = total > 0 ? (comply / total) * 100 : 0;
+    return score >= 40 && score < 70;
+  }).length;
+
+  const gapNonCompliant = gapAnalyses.filter(a => {
+    const total = a.questions?.length || 0;
+    const comply = a.questions?.filter((q: any) => q.finding === 'Comply').length || 0;
+    const score = total > 0 ? (comply / total) * 100 : 0;
+    return score < 40;
+  }).length;
+
+  const totalGap = gapAnalyses.length;
+
+  const gapDistribution = [
+    { name: 'Compliant (≥70%)', value: gapCompliant, color: '#10B981', percentage: totalGap > 0 ? `${Math.round((gapCompliant / totalGap) * 100)}%` : "0%" },
+    { name: 'Partial (40-69%)', value: gapPartial, color: '#F59E0B', percentage: totalGap > 0 ? `${Math.round((gapPartial / totalGap) * 100)}%` : "0%" },
+    { name: 'Non-Compliant (<40%)', value: gapNonCompliant, color: '#EF4444', percentage: totalGap > 0 ? `${Math.round((gapNonCompliant / totalGap) * 100)}%` : "0%" },
+  ];
 
   // Findings Calculation (Matching AuditFindings.tsx extraction logic)
   const allFindings: any[] = [];
@@ -155,6 +212,22 @@ const Index = () => {
 
   const stats = [
     {
+      label: "Self Assessments",
+      value: selfAssessments.length,
+      icon: ShieldCheck,
+      trend: "+22%",
+      trendColor: "text-emerald-500 bg-emerald-50",
+      iconColor: "text-emerald-600 bg-emerald-50"
+    },
+    {
+      label: "Gap Analyses",
+      value: gapAnalyses.length,
+      icon: Search,
+      trend: "+10%",
+      trendColor: "text-emerald-500 bg-emerald-50",
+      iconColor: "text-emerald-600 bg-emerald-50"
+    },
+    {
       label: "Companies",
       value: companies.length,
       icon: Building2,
@@ -238,7 +311,7 @@ const Index = () => {
       <div className="max-w-[1600px] mx-auto space-y-6">
 
         {/* Top Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {stats.map((stat, i) => (
             <Card key={i} className="border-none shadow-sm rounded-xl overflow-hidden bg-white hover:shadow-md transition-all">
               <CardContent className="p-5">
@@ -411,6 +484,131 @@ const Index = () => {
             </div>
           </Card>
 
+        </div>
+
+        {/* Self Assessment & Gap Analysis Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Self Assessment Scores */}
+          <Card className="border-none shadow-sm rounded-xl bg-white p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-[#111827]">Self Assessment Scores</h2>
+                <p className="text-xs text-[#9CA3AF]">Score distribution across assessments</p>
+              </div>
+              <ShieldCheck className="w-5 h-5 text-slate-300" />
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 py-4">
+              <div className="h-[200px] w-[200px] relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={saDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {saDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                      <Label
+                        content={({ viewBox }) => {
+                          const { cx, cy } = viewBox as any;
+                          return (
+                            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
+                              <tspan x={cx} dy="-0.5em" className="fill-slate-400 text-[10px] font-semibold">Total</tspan>
+                              <tspan x={cx} dy="1.4em" className="fill-[#111827] text-2xl font-black">{totalSA}</tspan>
+                            </text>
+                          );
+                        }}
+                      />
+                    </Pie>
+                    <RechartsTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="flex-1 space-y-4 min-w-[200px]">
+                {saDistribution.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm font-semibold text-[#6B7280]">{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-bold text-[#111827]">{item.value}</span>
+                      <span className="text-xs font-medium text-[#9CA3AF] w-12 text-right">{item.percentage}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Gap Analysis Scores */}
+          <Card className="border-none shadow-sm rounded-xl bg-white p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-[#111827]">Gap Analysis Scores</h2>
+                <p className="text-xs text-[#9CA3AF]">Compliance level distribution</p>
+              </div>
+              <Search className="w-5 h-5 text-slate-300" />
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 py-4">
+              <div className="h-[200px] w-[200px] relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={gapDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {gapDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                      <Label
+                        content={({ viewBox }) => {
+                          const { cx, cy } = viewBox as any;
+                          return (
+                            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
+                              <tspan x={cx} dy="-0.5em" className="fill-slate-400 text-[10px] font-semibold">Total</tspan>
+                              <tspan x={cx} dy="1.4em" className="fill-[#111827] text-2xl font-black">{totalGap}</tspan>
+                            </text>
+                          );
+                        }}
+                      />
+                    </Pie>
+                    <RechartsTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="flex-1 space-y-4 min-w-[200px]">
+                {gapDistribution.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm font-semibold text-[#6B7280]">{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-bold text-[#111827]">{item.value}</span>
+                      <span className="text-xs font-medium text-[#9CA3AF] w-12 text-right">{item.percentage}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Full-Width Bar Chart Section */}

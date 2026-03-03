@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, Check, ChevronDown, Plus, Save, Edit, Trash2, Eye, ArrowLeft, MoreHorizontal, Search, Star, FileText, Download } from "lucide-react";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -16,7 +17,7 @@ import logoImg from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -37,59 +38,7 @@ const ISO_STANDARDS = [
 
 const FREQUENCIES = ["Monthly", "Quarterly", "Bi-annually", "Annually"];
 
-interface Clause {
-    id: string;
-    name: string;
-    isHeading?: boolean;
-}
-
-const CLAUSES: Clause[] = [
-    { id: "4", name: "4. CONTEXT OF THE ORGANISATION", isHeading: true },
-    { id: "4.1", name: "4.1 Understanding the organization & its context" },
-    { id: "4.2", name: "4.2 Understanding the needs and expectations of interested parties" },
-    { id: "4.3", name: "4.3 Determining the scope of the EMS" },
-    { id: "4.4", name: "4.4 Environmental management system" },
-    { id: "5", name: "5 LEADERSHIP", isHeading: true },
-    { id: "5.1", name: "5.1 Leadership and commitment" },
-    { id: "5.2", name: "5.2 Environmental policy" },
-    { id: "5.3", name: "5.3 Organizational roles, responsibilities and authorities" },
-    { id: "6", name: "6 PLANNING", isHeading: true },
-    { id: "6.1", name: "6.1 Actions to address risks & opportunities", isHeading: true },
-    { id: "6.1.1", name: "6.1.1 General" },
-    { id: "6.1.2", name: "6.1.2 Environmental aspects" },
-    { id: "6.1.3", name: "6.1.3 Compliance obligations" },
-    { id: "6.1.4", name: "6.1.4 Planning action" },
-    { id: "6.2", name: "6.2 Environmental objectives and planning to achieve them", isHeading: true },
-    { id: "6.2.1", name: "6.2.1 Environmental objectives" },
-    { id: "6.2.2", name: "6.2.2 Planning actions to achieve environmental objectives" },
-    { id: "7", name: "7 SUPPORT", isHeading: true },
-    { id: "7.1", name: "7.1 Resources" },
-    { id: "7.2", name: "7.2 Competence" },
-    { id: "7.3", name: "7.3 Awareness" },
-    { id: "7.4", name: "7.4 Communication", isHeading: true },
-    { id: "7.4.1", name: "7.4.1 General" },
-    { id: "7.4.2", name: "7.4.2 Internal Communication" },
-    { id: "7.4.3", name: "7.4.3 External Communication" },
-    { id: "7.5", name: "7.5 Documented information", isHeading: true },
-    { id: "7.5.1", name: "7.5.1 General" },
-    { id: "7.5.2", name: "7.5.2 Creating and updating" },
-    { id: "7.5.3", name: "7.5.3 Control of documented information" },
-    { id: "8", name: "8 OPERATIONS", isHeading: true },
-    { id: "8.1", name: "8.1 Operational planning and control" },
-    { id: "8.2", name: "8.2 Emergency Preparedness and Response" },
-    { id: "9", name: "9 PERFORMANCE EVALUATION", isHeading: true },
-    { id: "9.1", name: "9.1 Monitoring, measuring, analysis and evaluation", isHeading: true },
-    { id: "9.1.1", name: "9.1.1 General" },
-    { id: "9.1.2", name: "9.1.2 Evaluation of compliance" },
-    { id: "9.2", name: "9.2 Internal audit", isHeading: true },
-    { id: "9.2.1", name: "9.2.1 General" },
-    { id: "9.2.2", name: "9.2.2 Internal audit programme" },
-    { id: "9.3", name: "9.3 Management review" },
-    { id: "10", name: "10 IMPROVEMENT", isHeading: true },
-    { id: "10.1", name: "10.1 General" },
-    { id: "10.2", name: "10.2 Nonconformity & corrective action" },
-    { id: "10.3", name: "10.3 Continual improvement" },
-];
+import { CLAUSE_MATRIX, ClauseMatrixRow } from "@/data/clauseMapping";
 
 const AuditPrograms = () => {
     const [view, setView] = useState<"list" | "create" | "edit" | "view">("list");
@@ -109,13 +58,14 @@ const AuditPrograms = () => {
     // Form state
     const [currentId, setCurrentId] = useState<number | null>(null);
     const [auditName, setAuditName] = useState("");
-    const [selectedStandard, setSelectedStandard] = useState("");
+    const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
     const [frequency, setFrequency] = useState("Bi-annually");
     const [duration, setDuration] = useState(3);
     const [selectedSite, setSelectedSite] = useState("");
     const [selectedAuditors, setSelectedAuditors] = useState<string[]>([]);
     const [leadAuditorId, setLeadAuditorId] = useState<string | null>(null);
     const [selectedCells, setSelectedCells] = useState<Record<string, boolean>>({});
+    const [customRows, setCustomRows] = useState<{ id: string, text: string }[]>([]);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -126,13 +76,23 @@ const AuditPrograms = () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const [sitesRes, usersRes, programsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/sites`),
+                    fetch(`${API_BASE_URL}/api/sites?userId=${user.id}`),
                     fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
                     fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
                 ]);
                 const sitesData = sitesRes.ok ? await sitesRes.json() : [];
-                const usersData = usersRes.ok ? await usersRes.json() : [];
+                let usersData = usersRes.ok ? await usersRes.json() : [];
                 const programsData = programsRes.ok ? await programsRes.json() : [];
+
+                if (user && user.id) {
+                    if (Array.isArray(usersData)) {
+                        if (!usersData.some((u: any) => u.id === user.id)) {
+                            usersData.unshift(user);
+                        }
+                    } else {
+                        usersData = [user];
+                    }
+                }
 
                 setSites(Array.isArray(sitesData) ? sitesData : []);
                 setAuditors(Array.isArray(usersData) ? usersData : []);
@@ -218,16 +178,16 @@ const AuditPrograms = () => {
     };
 
     const handleGenerateSchedule = () => {
-        if (!auditName || !selectedStandard || !selectedSite) {
-            toast.error("Please fill in Audit Name, Standard and Site");
+        if (!auditName || selectedStandards.length === 0 || !selectedSite) {
+            toast.error("Please fill in Audit Name, Standard(s) and Site");
             return;
         }
         setShowSchedule(true);
         toast.success("Schedule updated!");
     };
 
-    const toggleCell = (row: number, col: number) => {
-        if (CLAUSES[row].isHeading || view === "view") return;
+    const toggleCell = (row: number | string, col: number) => {
+        if (typeof row === 'number' && CLAUSE_MATRIX[row]?.isHeading || view === "view") return;
         const key = `${row}-${col}`;
         setSelectedCells(prev => ({
             ...prev,
@@ -247,13 +207,13 @@ const AuditPrograms = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: auditName,
-                    isoStandard: selectedStandard,
+                    isoStandard: selectedStandards.join(', '),
                     frequency,
                     duration,
                     siteId: selectedSite,
                     auditorIds: selectedAuditors,
                     leadAuditorId: leadAuditorId,
-                    scheduleData: selectedCells,
+                    scheduleData: { ...selectedCells, customRows },
                     userId: user.id
                 })
             });
@@ -293,13 +253,16 @@ const AuditPrograms = () => {
     const handleEditProgram = (program: any) => {
         setCurrentId(program.id);
         setAuditName(program.name);
-        setSelectedStandard(program.isoStandard);
+        setSelectedStandards(program.isoStandard ? program.isoStandard.split(', ') : []);
         setFrequency(program.frequency);
         setDuration(program.duration);
         setSelectedSite(program.siteId.toString());
         setSelectedAuditors(program.auditors.map((a: any) => a.id.toString()));
         setLeadAuditorId(program.leadAuditorId?.toString() || null);
-        setSelectedCells(program.scheduleData || {});
+        const loadData = program.scheduleData || {};
+        const { customRows: loadedCustomRows, ...restCells } = loadData;
+        setSelectedCells(restCells);
+        setCustomRows(loadedCustomRows || []);
         setShowSchedule(true);
         setView("edit");
     };
@@ -307,13 +270,16 @@ const AuditPrograms = () => {
     const handleViewProgram = (program: any) => {
         setCurrentId(program.id);
         setAuditName(program.name);
-        setSelectedStandard(program.isoStandard);
+        setSelectedStandards(program.isoStandard ? program.isoStandard.split(', ') : []);
         setFrequency(program.frequency);
         setDuration(program.duration);
         setSelectedSite(program.siteId.toString());
         setSelectedAuditors(program.auditors.map((a: any) => a.id.toString()));
         setLeadAuditorId(program.leadAuditorId?.toString() || null);
-        setSelectedCells(program.scheduleData || {});
+        const loadData = program.scheduleData || {};
+        const { customRows: loadedCustomRows, ...restCells } = loadData;
+        setSelectedCells(restCells);
+        setCustomRows(loadedCustomRows || []);
         setShowSchedule(true);
         setView("view");
     };
@@ -321,19 +287,20 @@ const AuditPrograms = () => {
     const resetForm = () => {
         setCurrentId(null);
         setAuditName("");
-        setSelectedStandard("");
+        setSelectedStandards([]);
         setFrequency("Bi-annually");
         setDuration(3);
         setSelectedSite("");
         setSelectedAuditors([]);
         setLeadAuditorId(null);
         setSelectedCells({});
+        setCustomRows([]);
         setShowSchedule(false);
     };
 
     const getSelectedClausesList = () => {
-        const result: { clause: Clause; periods: string[] }[] = [];
-        CLAUSES.forEach((clause, rowIndex) => {
+        const result: { clause: ClauseMatrixRow; periods: string[] }[] = [];
+        CLAUSE_MATRIX.forEach((clause, rowIndex) => {
             const activePeriods: string[] = [];
             periods.forEach((period, colIndex) => {
                 if (selectedCells[`${rowIndex}-${colIndex}`]) {
@@ -344,13 +311,36 @@ const AuditPrograms = () => {
                 result.push({ clause, periods: activePeriods });
             }
         });
+
+        // Find selected periods for custom rows
+        customRows.forEach((cRow) => {
+            const activePeriods: string[] = [];
+            periods.forEach((period, colIndex) => {
+                if (selectedCells[`custom_${cRow.id}-${colIndex}`]) {
+                    activePeriods.push(period.label);
+                }
+            });
+            if (activePeriods.length > 0) {
+                result.push({
+                    clause: {
+                        id: `custom_${cRow.id}`,
+                        iso9001: cRow.text,
+                        iso14001: cRow.text,
+                        iso45001: cRow.text,
+                        isHeading: false
+                    },
+                    periods: activePeriods
+                });
+            }
+        });
+
         return result;
     };
 
     const selectedClausesList = getSelectedClausesList();
 
     const handleDownloadPDF = async (program: any) => {
-        const doc = new jsPDF();
+        const doc = new jsPDF({ orientation: 'landscape' });
         const programPeriods = calculatePeriods(program.frequency, program.duration);
 
         // Add Logo
@@ -381,18 +371,72 @@ const AuditPrograms = () => {
         doc.text(`Site: ${program.site?.name || "N/A"}`, 14, 73);
 
         // Prepare table data
-        const tableHead = [["Clause", ...programPeriods.map(p => p.label)]];
+        const stdLabels = (program.selectedStandards || ["Clause"]).map((std: string) => {
+            if (std.includes("9001")) return "ISO 9001:2015";
+            if (std.includes("14001")) return "ISO 14001:2015";
+            if (std.includes("45001")) return "ISO 45001:2018";
+            return "Clause";
+        });
+        const tableHead = [[...stdLabels, ...programPeriods.map((p: any) => p.label)]];
         const tableBody: any[] = [];
 
-        CLAUSES.forEach((clause, rowIndex) => {
-            const row: any[] = [clause.name];
+        CLAUSE_MATRIX.forEach((clause, rowIndex) => {
+            if (program.selectedStandards && program.selectedStandards.length === 1 && !clause.isHeading) {
+                const std = program.selectedStandards[0];
+                let text = "";
+                if (std.includes("9001")) text = clause.iso9001;
+                else if (std.includes("14001")) text = clause.iso14001;
+                else if (std.includes("45001")) text = clause.iso45001;
+                if (text === "Corresponding Clause does not exist") return;
+            }
+
+            const row: any[] = [];
+            const stds = program.selectedStandards && program.selectedStandards.length > 0 ? program.selectedStandards : ["anything"];
+
+            stds.forEach((std: string, index: number) => {
+                let cellText = "";
+                if (std.includes("9001")) cellText = clause.iso9001;
+                else if (std.includes("14001")) cellText = clause.iso14001;
+                else if (std.includes("45001")) cellText = clause.iso45001;
+                else cellText = clause.iso9001 || clause.iso14001 || clause.iso45001;
+
+                if (clause.isHeading) {
+                    if (index === 0) {
+                        row.push({
+                            content: cellText,
+                            colSpan: stds.length,
+                            styles: { fillColor: [33, 56, 71], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' }
+                        });
+                    }
+                } else {
+                    row.push({ content: cellText, styles: { halign: 'left' } });
+                }
+            });
+
             programPeriods.forEach((_, colIndex) => {
                 const key = `${rowIndex}-${colIndex}`;
-                // Check if this exact cell is selected in the program's scheduleData
                 const isSelected = program.scheduleData && program.scheduleData[key];
-                row.push(isSelected ? "X" : "");
+
+                if (clause.isHeading) {
+                    row.push({
+                        content: "",
+                        styles: { fillColor: [33, 56, 71] }
+                    });
+                } else {
+                    row.push(isSelected ? "X" : "");
+                }
             });
             tableBody.push(row);
+        });
+
+        const customProgramRows = program.scheduleData?.customRows || [];
+        const numStandardCols = program.selectedStandards?.length || 1;
+        customProgramRows.forEach((cRow: any) => {
+            tableBody.push([{
+                content: cRow.text || "Custom Requirement",
+                colSpan: numStandardCols + programPeriods.length,
+                styles: { fontStyle: 'italic', textColor: [100, 116, 139], halign: 'left' }
+            }]);
         });
 
         // Generate Table
@@ -404,20 +448,11 @@ const AuditPrograms = () => {
             headStyles: {
                 fillColor: [16, 185, 129], // Emerald-500
                 textColor: [0, 0, 0], // Black text
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                halign: 'center',
+                valign: 'middle'
             },
-            styles: { fontSize: 8, cellPadding: 2 },
-            columnStyles: {
-                0: { cellWidth: 60, fontStyle: 'bold' } // Clause column
-            },
-            didParseCell: (data) => {
-                // Highlight heading rows
-                const rowIndex = data.row.index;
-                if (CLAUSES[rowIndex] && CLAUSES[rowIndex].isHeading) {
-                    data.cell.styles.fillColor = [241, 245, 249]; // Slate-100
-                    data.cell.styles.fontStyle = 'bold';
-                }
-            }
+            styles: { fontSize: 6, cellPadding: 0.8, halign: 'center', valign: 'middle' }
         });
 
         doc.save(`${program.name.replace(/\s+/g, '_')}_Schedule.pdf`);
@@ -435,40 +470,99 @@ const AuditPrograms = () => {
             console.error("Failed to fetch logo for Word doc:", error);
         }
 
+        const stdLabels = (program.selectedStandards || ["Clause"]).map((std: string) => {
+            if (std.includes("9001")) return "ISO 9001:2015";
+            if (std.includes("14001")) return "ISO 14001:2015";
+            if (std.includes("45001")) return "ISO 45001:2018";
+            return "Clause";
+        });
+
         // Create table header row
         const headerCells = [
-            new DocxTableCell({
-                children: [new Paragraph({ text: "Clause", style: "strong" })],
-                width: { size: 4000, type: WidthType.DXA },
-            }),
-            ...programPeriods.map(p => new DocxTableCell({
+            ...stdLabels.map((label: string) => new DocxTableCell({
+                children: [new Paragraph({ text: label, style: "strong" })],
+                width: { size: 3000, type: WidthType.DXA },
+            })),
+            ...programPeriods.map((p: any) => new DocxTableCell({
                 children: [new Paragraph({ text: p.label, style: "strong", alignment: AlignmentType.CENTER })],
                 width: { size: 1000, type: WidthType.DXA },
             }))
         ];
 
         // Create table body rows
-        const bodyRows = CLAUSES.map((clause, rowIndex) => {
-            const cells = [
-                new DocxTableCell({
-                    children: [new Paragraph({ text: clause.name })],
-                    shading: clause.isHeading ? { fill: "F1F5F9" } : undefined
-                })
-            ];
+        const bodyRows: any[] = [];
+
+        CLAUSE_MATRIX.forEach((clause, rowIndex) => {
+            if (program.selectedStandards && program.selectedStandards.length === 1 && !clause.isHeading) {
+                const std = program.selectedStandards[0];
+                let text = "";
+                if (std.includes("9001")) text = clause.iso9001;
+                else if (std.includes("14001")) text = clause.iso14001;
+                else if (std.includes("45001")) text = clause.iso45001;
+                if (text === "Corresponding Clause does not exist") return;
+            }
+
+            const cells: any[] = [];
+            const stds = program.selectedStandards && program.selectedStandards.length > 0 ? program.selectedStandards : ["anything"];
+
+            stds.forEach((std: string, index: number) => {
+                let cellText = "";
+                if (std.includes("9001")) cellText = clause.iso9001;
+                else if (std.includes("14001")) cellText = clause.iso14001;
+                else if (std.includes("45001")) cellText = clause.iso45001;
+                else cellText = clause.iso9001 || clause.iso14001 || clause.iso45001;
+
+                if (clause.isHeading) {
+                    if (index === 0) {
+                        cells.push(new DocxTableCell({
+                            children: [new Paragraph({
+                                children: [new TextRun({ text: cellText, color: "FFFFFF", bold: true })]
+                            })],
+                            columnSpan: stds.length,
+                            shading: { fill: "213847" }
+                        }));
+                    }
+                } else {
+                    cells.push(new DocxTableCell({
+                        children: [new Paragraph({ text: cellText })]
+                    }));
+                }
+            });
 
             programPeriods.forEach((_, colIndex) => {
                 const key = `${rowIndex}-${colIndex}`;
                 const isSelected = program.scheduleData && program.scheduleData[key];
-                cells.push(new DocxTableCell({
-                    children: [new Paragraph({
-                        text: isSelected ? "X" : "",
-                        alignment: AlignmentType.CENTER
-                    })],
-                    shading: clause.isHeading ? { fill: "F1F5F9" } : undefined
-                }));
+
+                if (clause.isHeading) {
+                    cells.push(new DocxTableCell({
+                        children: [new Paragraph({ text: "" })],
+                        shading: { fill: "213847" }
+                    }));
+                } else {
+                    cells.push(new DocxTableCell({
+                        children: [new Paragraph({
+                            text: isSelected ? "X" : "",
+                            alignment: AlignmentType.CENTER
+                        })]
+                    }));
+                }
             });
 
-            return new DocxTableRow({ children: cells });
+            bodyRows.push(new DocxTableRow({ children: cells }));
+        });
+
+        const customProgramRowsDocx = program.scheduleData?.customRows || [];
+        const numStandardCols = program.selectedStandards?.length || 1;
+        customProgramRowsDocx.forEach((cRow: any) => {
+            bodyRows.push(new DocxTableRow({
+                children: [
+                    new DocxTableCell({
+                        children: [new Paragraph({ text: cRow.text || "Custom Requirement", alignment: AlignmentType.LEFT })],
+                        columnSpan: numStandardCols + programPeriods.length,
+                        shading: { fill: "FCFCFC" }
+                    })
+                ]
+            }));
         });
 
         const table = new DocxTable({
@@ -531,14 +625,7 @@ const AuditPrograms = () => {
         });
     };
 
-    // Dynamic grid column sizing: reduce width as periods increase
-    // Use minmax to ensure they don't get TOO small, but shrink them
-    const getGridColsStyle = () => {
-        const colWidth = periods.length > 12 ? '70px' : periods.length > 6 ? '90px' : '110px';
-        return {
-            gridTemplateColumns: `minmax(250px, 1fr) repeat(${periods.length}, ${colWidth})`
-        };
-    };
+
 
     return (
         <div className="flex-1 space-y-8 p-8 pt-6 min-h-screen bg-white">
@@ -732,20 +819,38 @@ const AuditPrograms = () => {
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>ISO Standard</Label>
-                                <Select onValueChange={setSelectedStandard} value={selectedStandard} disabled={view === "view"}>
-                                    <SelectTrigger className="bg-white border-slate-200">
-                                        <SelectValue placeholder="Select ISO standard" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {ISO_STANDARDS.map((std) => (
-                                            <SelectItem key={std} value={std}>
-                                                {std}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                            <div className="space-y-3">
+                                <Label>ISO Standards</Label>
+                                <div className="flex flex-col gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+                                    {ISO_STANDARDS.map((std) => (
+                                        <div key={std} className="flex items-start space-x-3">
+                                            <Checkbox
+                                                id={`std-${std}`}
+                                                checked={selectedStandards.includes(std)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        setSelectedStandards(prev => [...prev, std]);
+                                                    } else {
+                                                        setSelectedStandards(prev => prev.filter(s => s !== std));
+                                                    }
+                                                }}
+                                                disabled={view === "view"}
+                                                className="mt-0.5 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                                            />
+                                            <div className="grid gap-1.5 leading-none">
+                                                <label
+                                                    htmlFor={`std-${std}`}
+                                                    className="text-sm font-medium leading-none cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700"
+                                                >
+                                                    {std.split(" - ")[0]}
+                                                </label>
+                                                <p className="text-xs text-slate-500">
+                                                    {std.split(" - ")[1]}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -967,53 +1072,159 @@ const AuditPrograms = () => {
 
                             <div className="space-y-4">
                                 <Badge variant="outline" className="px-4 py-1.5 rounded-full border-emerald-200 text-emerald-700 bg-white font-bold text-[10px] tracking-wide shadow-sm hover:bg-white transition-none uppercase">
-                                    {selectedStandard || "ISO 9001:2015 - Quality Management System"}
+                                    {selectedStandards.length > 0 ? selectedStandards.join(', ') : "ISO 9001:2015 - Quality Management System"}
                                 </Badge>
 
-                                <div className="overflow-x-auto scrollbar-thin border rounded-xl bg-white shadow-sm">
-                                    <div className="grid gap-x-0.5 gap-y-0.5 p-1 min-w-max" style={getGridColsStyle()}>
-                                        <div className="sticky left-0 bg-white z-20 h-8 flex items-end px-3 pb-1 text-[10px] font-bold text-slate-400 border-r border-slate-100">CLAUSE NAME</div>
-                                        {periods.map((p, i) => (
-                                            <div key={i} className="h-8 flex items-end justify-center text-[10px] font-bold text-slate-400 pb-1">
-                                                {p.label}
-                                            </div>
-                                        ))}
+                                <div className="overflow-x-auto scrollbar-thin border rounded-xl bg-white shadow-sm p-1">
+                                    <table className="w-full text-left border-collapse min-w-max">
+                                        <thead>
+                                            <tr>
+                                                {/* Dynamic Headers for Standards */}
+                                                {selectedStandards.map((std, colIdx) => {
+                                                    const colWidth = selectedStandards.length === 1 ? '350px' : '180px';
+                                                    const leftOffset = colIdx * parseInt(colWidth);
 
-                                        {CLAUSES.map((clause, rowIndex) => (
-                                            <React.Fragment key={clause.id}>
-                                                <div className={cn(
-                                                    "flex items-center text-[11px] py-1.5 px-3 rounded-lg sticky left-0 z-10 border-r border-slate-100",
-                                                    clause.isHeading ? "bg-slate-700 text-white font-black mt-1" : "bg-white font-semibold text-slate-600 pl-6"
-                                                )}>
-                                                    {clause.name}
-                                                </div>
-                                                {periods.map((_, colIndex) => {
-                                                    const isChecked = selectedCells[`${rowIndex}-${colIndex}`];
+                                                    const label = std.includes("9001") ? "ISO 9001:2015" : std.includes("14001") ? "ISO 14001:2015" : std.includes("45001") ? "ISO 45001:2018" : "CLAUSE NAME";
                                                     return (
-                                                        <div
-                                                            key={colIndex}
-                                                            onClick={() => toggleCell(rowIndex, colIndex)}
-                                                            className={cn(
-                                                                "rounded-md border h-8 flex items-center justify-center cursor-pointer transition-all duration-200",
-                                                                clause.isHeading ? "bg-slate-50/50 border-transparent cursor-default pointer-events-none" : (
-                                                                    isChecked
-                                                                        ? "bg-emerald-100 border-emerald-400 text-emerald-600 shadow-sm"
-                                                                        : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 hover:shadow-inner"
-                                                                )
-                                                            )}
+                                                        <th key={std}
+                                                            className="sticky z-20 bg-slate-100 h-10 px-4 text-[11px] font-black tracking-widest text-[#213847] border-b border-r border-slate-200 uppercase align-middle"
+                                                            style={{ left: `${leftOffset}px`, width: colWidth, minWidth: colWidth, maxWidth: colWidth }}
                                                         >
-                                                            {!clause.isHeading && isChecked && (
-                                                                <div className="animate-in zoom-in-75 duration-200">
-                                                                    <Check className="w-4 h-4 stroke-[4px]" />
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                            {label}
+                                                        </th>
                                                     );
                                                 })}
-                                            </React.Fragment>
-                                        ))}
-                                    </div>
+
+                                                {/* Timeline Headers */}
+                                                {periods.map((p, i) => (
+                                                    <th key={i} className="bg-white h-10 px-2 text-center text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-slate-100 align-middle min-w-[60px]">
+                                                        {p.label}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {/* Matrix Body */}
+                                            {CLAUSE_MATRIX.map((clause, rowIndex) => {
+                                                if (selectedStandards.length === 1 && !clause.isHeading) {
+                                                    const std = selectedStandards[0];
+                                                    let text = "";
+                                                    if (std.includes("9001")) text = clause.iso9001;
+                                                    else if (std.includes("14001")) text = clause.iso14001;
+                                                    else if (std.includes("45001")) text = clause.iso45001;
+
+                                                    if (text === "Corresponding Clause does not exist") {
+                                                        return null;
+                                                    }
+                                                }
+
+                                                return (
+                                                    <tr key={clause.id} className="group hover:bg-slate-50 transition-colors">
+                                                        {/* Active Standard Columns */}
+                                                        {selectedStandards.map((std, colIdx) => {
+                                                            const colWidth = selectedStandards.length === 1 ? '350px' : '180px';
+                                                            const leftOffset = colIdx * parseInt(colWidth);
+
+                                                            const isIso9001 = std.includes("9001");
+                                                            const isIso14001 = std.includes("14001");
+                                                            const isIso45001 = std.includes("45001");
+
+                                                            let cellText = "";
+                                                            if (isIso9001) cellText = clause.iso9001;
+                                                            else if (isIso14001) cellText = clause.iso14001;
+                                                            else if (isIso45001) cellText = clause.iso45001;
+
+                                                            const isMissing = cellText === "Corresponding Clause does not exist";
+
+                                                            return (
+                                                                <td key={`${clause.id}-${std}`}
+                                                                    className={cn(
+                                                                        "sticky z-10 text-[11px] py-3 px-4 border-r border-b border-slate-200 transition-colors align-middle",
+                                                                        clause.isHeading ? "bg-[#213847] text-white font-black uppercase tracking-wide border-[#213847]" : "font-semibold text-slate-600 bg-white group-hover:bg-slate-50",
+                                                                        !clause.isHeading && colIdx === 0 && "pl-6",
+                                                                        isMissing && !clause.isHeading && "italic text-slate-400 bg-slate-50 group-hover:bg-slate-100"
+                                                                    )}
+                                                                    style={{ left: `${leftOffset}px`, width: colWidth, minWidth: colWidth, maxWidth: colWidth }}
+                                                                >
+                                                                    {cellText}
+                                                                </td>
+                                                            );
+                                                        })}
+
+                                                        {/* Timeline Checkboxes */}
+                                                        {periods.map((_, colIndex) => {
+                                                            const isChecked = selectedCells[`${rowIndex}-${colIndex}`];
+                                                            return (
+                                                                <td key={`check-${colIndex}`} className="p-1 border-b border-slate-100 align-middle">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleCell(rowIndex, colIndex)}
+                                                                        disabled={clause.isHeading || view === "view"}
+                                                                        className={cn(
+                                                                            "w-full h-8 rounded-md border flex items-center justify-center transition-all duration-200",
+                                                                            clause.isHeading ? "bg-transparent border-transparent opacity-0 cursor-default" : (
+                                                                                isChecked
+                                                                                    ? "bg-emerald-100/80 border-emerald-400 text-emerald-600 shadow-sm shadow-emerald-500/10 hover:bg-emerald-200/80 cursor-pointer"
+                                                                                    : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 cursor-pointer hover:shadow-inner"
+                                                                            )
+                                                                        )}
+                                                                    >
+                                                                        {!clause.isHeading && isChecked && (
+                                                                            <div className="animate-in zoom-in-75 duration-200">
+                                                                                <Check className="w-4 h-4 stroke-[4px]" />
+                                                                            </div>
+                                                                        )}
+                                                                    </button>
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                );
+                                            })}
+                                            {/* Custom Rows Render */}
+                                            {customRows.map((cRow) => (
+                                                <tr key={cRow.id} className="group transition-colors bg-slate-50/30 w-full hover:bg-slate-50">
+                                                    <td colSpan={selectedStandards.length + periods.length}
+                                                        className="text-[11px] py-1 border-b border-slate-200 align-middle pl-6 pr-2 bg-white"
+                                                    >
+                                                        <div className="flex items-center gap-2 sticky left-0 w-max max-w-full z-10">
+                                                            <Input
+                                                                value={cRow.text}
+                                                                onChange={(e) => setCustomRows(prev => prev.map(r => r.id === cRow.id ? { ...r, text: e.target.value } : r))}
+                                                                className="h-8 text-[11px] bg-white border-slate-200 placeholder:text-slate-400 w-[500px] font-semibold"
+                                                                placeholder="Enter custom requirement..."
+                                                                disabled={view === "view"}
+                                                            />
+                                                            {view !== "view" && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setCustomRows(prev => prev.filter(r => r.id !== cRow.id))}
+                                                                    className="text-red-400 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50 flex-shrink-0"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
+
+                                {view !== "view" && (
+                                    <div className="mt-4 flex justify-end">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="border-dashed border-slate-300 text-slate-600 hover:text-[#213847] hover:border-[#213847] hover:bg-slate-50 transition-colors w-full sm:w-auto font-medium"
+                                            onClick={() => setCustomRows(prev => [...prev, { id: Date.now().toString(), text: "" }])}
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" />
+                                            Add Custom Requirement
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Dynamic Clauses Selection Display */}
@@ -1028,7 +1239,26 @@ const AuditPrograms = () => {
                                                 <div className="h-1 bg-emerald-500 w-0 group-hover:w-full transition-all duration-500" />
                                                 <CardContent className="p-4">
                                                     <div className="text-[12px] font-bold text-slate-800 leading-tight mb-3">
-                                                        {item.clause.name}
+                                                        {selectedStandards.map(std => {
+                                                            const isIso9001 = std.includes("9001");
+                                                            const isIso14001 = std.includes("14001");
+                                                            const isIso45001 = std.includes("45001");
+                                                            let cellText = "";
+                                                            if (isIso9001) cellText = item.clause.iso9001;
+                                                            else if (isIso14001) cellText = item.clause.iso14001;
+                                                            else if (isIso45001) cellText = item.clause.iso45001;
+
+                                                            if (cellText === "Corresponding Clause does not exist") return null;
+
+                                                            const label = std.includes("9001") ? "9001" : std.includes("14001") ? "14001" : std.includes("45001") ? "45001" : "";
+
+                                                            return (
+                                                                <div key={std} className="mb-1 pb-1 border-b border-slate-50 last:border-0">
+                                                                    <span className="text-[9px] uppercase font-black text-emerald-600 mr-2 bg-emerald-50 px-1 rounded">{label}</span>
+                                                                    <span className="text-slate-700 font-semibold">{cellText}</span>
+                                                                </div>
+                                                            )
+                                                        })}
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {item.periods.map(p => (
@@ -1084,7 +1314,7 @@ const AuditPrograms = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div >
+        </div>
     );
 };
 

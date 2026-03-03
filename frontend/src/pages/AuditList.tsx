@@ -10,7 +10,7 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    LayoutList, MoreVertical, FileText, Trash2, Eye, Calendar, Clock, Search, Edit, Download, Sheet, FileDown
+    LayoutList, MoreVertical, FileText, Trash2, Eye, Calendar, Clock, Search, Edit, Download, Sheet, FileDown, MapPin
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -30,6 +30,7 @@ const AuditList = () => {
     const [auditPlans, setAuditPlans] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [selectedSite, setSelectedSite] = useState("all");
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -429,19 +430,30 @@ const AuditList = () => {
         return 0;
     };
 
-    const filteredPlans = filteredPlansBySearch.filter(plan => {
+    const uniqueSites = React.useMemo(() => {
+        const sites = auditPlans.map(plan => plan.auditProgram?.site?.name || plan.location).filter(Boolean);
+        return ["all", ...Array.from(new Set(sites))];
+    }, [auditPlans]);
+
+    const filteredPlansBySite = filteredPlansBySearch.filter(plan => {
+        if (selectedSite === "all") return true;
+        const siteName = plan.auditProgram?.site?.name || plan.location;
+        return siteName === selectedSite;
+    });
+
+    const filteredPlans = filteredPlansBySite.filter(plan => {
         if (statusFilter === "all") return true;
         return getStatus(plan).toLowerCase() === statusFilter.toLowerCase();
     });
 
     const counts = {
-        all: filteredPlansBySearch.length,
-        draft: filteredPlansBySearch.filter(p => getStatus(p) === "Draft").length,
-        scheduled: filteredPlansBySearch.filter(p => getStatus(p) === "Scheduled").length,
-        inProgress: filteredPlansBySearch.filter(p => getStatus(p) === "In Progress").length,
-        completed: filteredPlansBySearch.filter(p => getStatus(p) === "Completed").length,
-        cancelled: filteredPlansBySearch.filter(p => getStatus(p) === "Cancelled").length,
-        postponed: filteredPlansBySearch.filter(p => getStatus(p) === "Postponed").length,
+        all: filteredPlansBySite.length,
+        draft: filteredPlansBySite.filter(p => getStatus(p) === "Draft").length,
+        scheduled: filteredPlansBySite.filter(p => getStatus(p) === "Scheduled").length,
+        inProgress: filteredPlansBySite.filter(p => getStatus(p) === "In Progress").length,
+        completed: filteredPlansBySite.filter(p => getStatus(p) === "Completed").length,
+        cancelled: filteredPlansBySite.filter(p => getStatus(p) === "Cancelled").length,
+        postponed: filteredPlansBySite.filter(p => getStatus(p) === "Postponed").length,
     };
 
     const totalPages = Math.ceil(filteredPlans.length / itemsPerPage);
@@ -453,7 +465,7 @@ const AuditList = () => {
     // Reset page to 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, statusFilter]);
+    }, [searchQuery, statusFilter, selectedSite]);
 
     return (
         <div className="flex-1 space-y-8 p-8 pt-6 min-h-screen bg-white">
@@ -479,6 +491,29 @@ const AuditList = () => {
                         </div>
                     </div>
                 </div>
+
+                {uniqueSites.length > 2 && (
+                    <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-[#213847]" />
+                            <span className="text-sm font-bold text-[#213847]">Select Site</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {uniqueSites.map((site) => (
+                                <button
+                                    key={site}
+                                    onClick={() => setSelectedSite(site)}
+                                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 border ${selectedSite === site
+                                        ? "bg-[#213847] text-white border-[#213847] shadow-md"
+                                        : "bg-white text-slate-600 border-slate-200 hover:border-[#213847]/30 hover:bg-slate-50"
+                                        }`}
+                                >
+                                    {site === "all" ? "All Sites" : site}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <Tabs defaultValue="all" onValueChange={setStatusFilter} className="w-full relative z-10 space-y-6">
                     <div className="bg-slate-50/50 rounded-xl p-1.5 inline-block border border-slate-100">
@@ -563,8 +598,8 @@ const AuditList = () => {
                                                         <span className="text-xs text-slate-400 font-medium">ISO Standards</span>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-slate-600 font-medium py-5">
-                                                    {plan.location?.split(',')[0] || "Head Office"}
+                                                <TableCell className="text-slate-600 font-bold py-5">
+                                                    {plan.auditProgram?.site?.name || plan.location?.split(',')[0] || "Head Office"}
                                                 </TableCell>
                                                 <TableCell className="py-5">
                                                     <div className="flex flex-col gap-1">

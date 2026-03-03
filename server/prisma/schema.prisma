@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -26,21 +20,21 @@ model Company {
   country        String?
   postalCode     String?
   isoStandards   String[] @default([])
-  location       String?  // Keeping for backward compatibility or as a summary
-  contactDetails String?  // Keeping for backward compatibility or as a summary
+  location       String?
+  contactDetails String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   userId         Int?
   user           User?    @relation("UserCompanies", fields: [userId], references: [id])
   sites          Site[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
 }
 
 model Site {
-  id              Int          @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   name            String
   description     String?
   siteType        String?
-  status          String?      @default("Active")
+  status          String?        @default("Active")
   address         String?
   city            String?
   state           String?
@@ -53,24 +47,26 @@ model Site {
   contactNumber   String?
   email           String?
   companyId       Int
-  company         Company        @relation(fields: [companyId], references: [id])
-  departments     Department[]
-  auditPrograms   AuditProgram[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  userId          Int?
+  auditPrograms   AuditProgram[]
+  departments     Department[]
+  company         Company        @relation(fields: [companyId], references: [id])
+  user            User?          @relation("UserSites", fields: [userId], references: [id])
 }
 
 model Department {
   id          Int      @id @default(autoincrement())
   name        String
-  code        String?
-  status      String?  @default("Active")
-  manager     String?
   description String?
   siteId      Int
-  site        Site     @relation(fields: [siteId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  code        String?
+  manager     String?
+  status      String?  @default("Active")
+  site        Site     @relation(fields: [siteId], references: [id])
 }
 
 model User {
@@ -82,48 +78,46 @@ model User {
   role              String
   customRoleName    String?
   password          String
-  isActive          Boolean        @default(true)
-  auditPrograms      AuditProgram[] @relation("AuditorPrograms")
-  leadAuditPrograms  AuditProgram[] @relation("LeadAuditor")
-  auditPlans         AuditPlan[]    @relation("PlanAuditors")
-  leadAuditPlans     AuditPlan[]    @relation("PlanLeadAuditor")
-  creatorId          Int?
-  creator            User?          @relation("UserCreator", fields: [creatorId], references: [id])
-  createdUsers       User[]         @relation("UserCreator")
-  companies          Company[]      @relation("UserCompanies")
-  createdPrograms    AuditProgram[] @relation("UserAuditPrograms")
-  createdPlans       AuditPlan[]    @relation("UserAuditPlans")
-  createdAt          DateTime       @default(now())
+  createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
+  isActive          Boolean        @default(true)
+  creatorId         Int?
+  leadAuditPlans    AuditPlan[]    @relation("PlanLeadAuditor")
+  createdPlans      AuditPlan[]    @relation("UserAuditPlans")
+  leadAuditPrograms AuditProgram[] @relation("LeadAuditor")
+  createdPrograms   AuditProgram[] @relation("UserAuditPrograms")
+  companies         Company[]      @relation("UserCompanies")
+  sites             Site[]         @relation("UserSites")
+  creator           User?          @relation("UserCreator", fields: [creatorId], references: [id])
+  createdUsers      User[]         @relation("UserCreator")
+  auditPrograms     AuditProgram[] @relation("AuditorPrograms")
+  auditPlans        AuditPlan[]    @relation("PlanAuditors")
 }
 
 model AuditProgram {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   name          String
   isoStandard   String
   frequency     String
-  duration      Int      @default(3)
+  duration      Int         @default(3)
   siteId        Int
-  site          Site     @relation(fields: [siteId], references: [id])
-  auditors      User[]   @relation("AuditorPrograms")
+  scheduleData  Json?
+  status        String      @default("Draft")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   leadAuditorId Int?
-  leadAuditor   User?    @relation("LeadAuditor", fields: [leadAuditorId], references: [id])
-  scheduleData  Json?    // Stores the grid/timeline data (selected clauses per period)
-  status        String   @default("Draft")
   userId        Int?
-  user          User?    @relation("UserAuditPrograms", fields: [userId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
   auditPlans    AuditPlan[]
+  leadAuditor   User?       @relation("LeadAuditor", fields: [leadAuditorId], references: [id])
+  site          Site        @relation(fields: [siteId], references: [id])
+  user          User?       @relation("UserAuditPrograms", fields: [userId], references: [id])
+  auditors      User[]      @relation("AuditorPrograms")
 }
 
 model AuditPlan {
   id             Int          @id @default(autoincrement())
   auditProgramId Int
-  auditProgram   AuditProgram @relation(fields: [auditProgramId], references: [id])
-  executionId    String       // Identifier like "FEB-2026" or unique combo to link to grid cell
-  auditName      String?
-  templateId     String?
+  executionId    String
   auditType      String?
   date           DateTime?
   location       String?
@@ -131,17 +125,20 @@ model AuditPlan {
   objective      String?
   criteria       String?
   leadAuditorId  Int?
-  leadAuditor    User?        @relation("PlanLeadAuditor", fields: [leadAuditorId], references: [id])
-  auditors       User[]       @relation("PlanAuditors")
-  itinerary      Json?        // Stores array of {id, startTime, endTime, activity, notes}
-  auditData      Json?        // Stores audit execution progress/results
-  findingsData   Json?        // Stores findings-specific overrides
-  userId         Int?
-  user           User?        @relation("UserAuditPlans", fields: [userId], references: [id])
+  itinerary      Json?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  auditName      String?
+  templateId     String?
+  auditData      Json?
+  userId         Int?
+  findingsData   Json?
+  auditProgram   AuditProgram @relation(fields: [auditProgramId], references: [id])
+  leadAuditor    User?        @relation("PlanLeadAuditor", fields: [leadAuditorId], references: [id])
+  user           User?        @relation("UserAuditPlans", fields: [userId], references: [id])
+  auditors       User[]       @relation("PlanAuditors")
 
-  @@unique([auditProgramId, executionId]) // Ensure one plan per execution slot
+  @@unique([auditProgramId, executionId])
 }
 
 model Otp {

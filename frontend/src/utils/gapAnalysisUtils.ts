@@ -299,20 +299,46 @@ export const generatePDF = async (
 
     // --- Page 3+: Detailed Questions ---
     doc.addPage();
-    // Use drawHeaderFooter to safely add logo/footer
     drawHeaderFooter(doc);
 
     doc.setFontSize(16);
     doc.text("Detailed Audit Findings", margin, headerBottom);
 
-    const questionBody = questions.map((q: any, index: number) => [
-        index + 1,
-        q.clause,
-        q.text,
-        q.finding || '-',
-        q.evidence || '-',
-        q.actionPlan || '-'
-    ]);
+    // Pre-load evidence images for inline embedding
+    const imgCellHeight = 36; // height for the image portion inside the cell
+    const textRowHeight = 16;  // rough estimate for text portion above image
+    const imageMap: Record<number, { dataUrl: string; w: number; h: number }> = {};
+    for (let i = 0; i < questions.length; i++) {
+        const q = questions[i] as any;
+        if (q.evidenceImage) {
+            const img = new Image();
+            await new Promise<void>((resolve) => {
+                img.onload = () => { imageMap[i] = { dataUrl: q.evidenceImage, w: img.width, h: img.height }; resolve(); };
+                img.onerror = () => resolve();
+                img.src = q.evidenceImage;
+            });
+        }
+    }
+
+    const questionBody = questions.map((q: any, index: number) => {
+        const hasImage = !!imageMap[index];
+        // Always show evidence text; fall back to a label when empty + image present
+        const evidenceText = q.evidence
+            ? q.evidence
+            : hasImage ? '[See image below]' : '-';
+        return [
+            index + 1,
+            q.clause,
+            q.text,
+            q.finding || '-',
+            {
+                content: evidenceText,
+                // Reserve room for text + gap + image
+                styles: hasImage ? { minCellHeight: textRowHeight + 4 + imgCellHeight } : {}
+            },
+            q.actionPlan || '-'
+        ];
+    });
 
     autoTable(doc, {
         startY: 30,
@@ -331,10 +357,31 @@ export const generatePDF = async (
         },
         didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 3) {
-                const finding = data.cell.raw;
-                if (finding === 'Comply') data.cell.styles.textColor = [46, 204, 113]; // Green
-                if (finding === 'NC') data.cell.styles.textColor = [231, 76, 60]; // Red
-                if (finding === 'OFI') data.cell.styles.textColor = [243, 156, 18]; // Orange
+                const finding = data.cell.raw as string;
+                if (finding === 'Comply') data.cell.styles.textColor = [46, 204, 113];
+                if (finding === 'NC') data.cell.styles.textColor = [231, 76, 60];
+                if (finding === 'OFI') data.cell.styles.textColor = [243, 156, 18];
+            }
+        },
+        didDrawCell: (data) => {
+            // Embed evidence image inside the Evidence column cell
+            if (data.section === 'body' && data.column.index === 4) {
+                const imgInfo = imageMap[data.row.index];
+                if (imgInfo) {
+                    const padding = 2;
+                    const maxW = data.cell.width - padding * 2;
+                    const maxH = imgCellHeight;
+                    let drawW = Math.min(imgInfo.w, maxW);
+                    let drawH = (imgInfo.h / imgInfo.w) * drawW;
+                    if (drawH > maxH) {
+                        drawH = maxH;
+                        drawW = (imgInfo.w / imgInfo.h) * drawH;
+                    }
+                    // Place image at bottom of the cell, below text
+                    const x = data.cell.x + padding;
+                    const y = data.cell.y + data.cell.height - drawH - padding;
+                    data.doc.addImage(imgInfo.dataUrl, 'PNG', x, y, drawW, drawH);
+                }
             }
         },
         didDrawPage: (data) => {
@@ -472,24 +519,71 @@ export const generateWord = async (
     });
 
 
+    // Helper: convert base64 data URL to ArrayBuffer for docx ImageRun
+    const base64ToAB = (dataUrl: string): ArrayBuffer => {
+        const base64 = dataUrl.split(',')[1];
+        const binary = atob(base64);
+        const buffer = new ArrayBuffer(binary.length);
+        const view = new Uint8Array(buffer);
+        for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i);
+        return buffer;
+    };
+
+    // Helper: get image dimensions from data URL
+    const getImgDimensions = (dataUrl: string): Promise<{ w: number; h: number }> =>
+        new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve({ w: img.width, h: img.height });
+            img.onerror = () => resolve({ w: 400, h: 300 });
+            img.src = dataUrl;
+        });
+
     // Detailed Questions Data
-    const findingsRows = questions.map((q: any, index: number) => {
+    const findingsRows: TableRow[] = [];
+    for (const [index, q] of (questions as any[]).entries()) {
         let color = "000000";
         if (q.finding === 'Comply') color = "2ECC71";
         if (q.finding === 'NC') color = "E74C3C";
         if (q.finding === 'OFI') color = "F39C12";
 
-        return new TableRow({
+        // Build Evidence cell children: text + optional image
+        const evidenceCellChildren: Paragraph[] = [
+            new Paragraph(q.evidence || '-')
+        ];
+        if (q.evidenceImage) {
+            try {
+                const imgBuffer = base64ToAB(q.evidenceImage);
+                const { w, h } = await getImgDimensions(q.evidenceImage);
+                const maxW = 120; // constrained to fit inside cell
+                const imgW = Math.min(w, maxW);
+                const imgH = (h / w) * imgW;
+                evidenceCellChildren.push(
+                    new Paragraph({
+                        children: [
+                            new ImageRun({
+                                data: imgBuffer,
+                                transformation: { width: imgW, height: imgH }
+                            })
+                        ]
+                    })
+                );
+            } catch (e) {
+                console.warn('Could not embed evidence image for Q', index + 1, e);
+            }
+        }
+
+        findingsRows.push(new TableRow({
             children: [
                 new TableCell({ children: [new Paragraph((index + 1).toString())], width: { size: 5, type: WidthType.PERCENTAGE } }),
                 new TableCell({ children: [new Paragraph(q.clause)], width: { size: 10, type: WidthType.PERCENTAGE } }),
                 new TableCell({ children: [new Paragraph(q.text)], width: { size: 30, type: WidthType.PERCENTAGE } }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: q.finding || '-', color: color, bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
-                new TableCell({ children: [new Paragraph(q.evidence || '-')], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                new TableCell({ children: evidenceCellChildren, width: { size: 20, type: WidthType.PERCENTAGE } }),
                 new TableCell({ children: [new Paragraph(q.actionPlan || '-')], width: { size: 25, type: WidthType.PERCENTAGE } }),
             ]
-        });
-    });
+        }));
+    }
+
 
 
     // 3. Document Structure

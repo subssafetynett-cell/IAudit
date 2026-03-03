@@ -61,7 +61,10 @@ export function TopNav() {
   const initials = `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`.toUpperCase();
 
   return (
-    <header className="h-20 flex items-center justify-end px-4 shrink-0 overflow-hidden bg-white">
+    <header className="h-20 flex items-center justify-between px-4 shrink-0 overflow-hidden bg-white border-b border-border/40">
+      <div className="flex items-center">
+        <SidebarTrigger className="lg:hidden h-10 w-10 text-muted-foreground mr-2" />
+      </div>
       <div className="flex items-center gap-4">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>

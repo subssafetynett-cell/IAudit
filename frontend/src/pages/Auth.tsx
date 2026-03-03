@@ -36,6 +36,7 @@ export default function Auth() {
     const [otpCode, setOtpCode] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [resendTimer, setResendTimer] = useState(0);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
@@ -48,6 +49,16 @@ export default function Auth() {
         setShowOtpStep(false);
         setErrorMessage("");
     };
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (resendTimer > 0) {
+            interval = setTimeout(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearTimeout(interval);
+    }, [resendTimer]);
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -144,6 +155,7 @@ export default function Auth() {
 
             // Success! Show OTP step
             setShowOtpStep(true);
+            setResendTimer(60);
         } catch (error: any) {
             console.error('Signup error:', error);
             if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
@@ -151,6 +163,32 @@ export default function Auth() {
             } else {
                 setErrorMessage(error.message || "Failed to send OTP. Please try again.");
             }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setIsSubmitting(true);
+        setErrorMessage("");
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: signupEmail })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to resend OTP');
+            }
+
+            setResendTimer(60);
+        } catch (error: any) {
+            console.error('Resend OTP error:', error);
+            setErrorMessage(error.message || "Failed to resend OTP. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
@@ -173,7 +211,7 @@ export default function Auth() {
                     lastName: signupLastName,
                     mobile: signupPhone,
                     password: signupPassword,
-                    role: 'User', // Default role
+                    role: 'auditor', // Default role
                     isActive: true
                 })
             });
@@ -323,13 +361,25 @@ export default function Auth() {
                                             onChange={(e) => setOtpCode(e.target.value)}
                                             className="h-14 text-center text-2xl tracking-[0.5em] font-mono bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
                                         />
+                                        <p className="text-xs text-[#6B7280] mt-1">
+                                            If you don't see the email, please check your junk or spam folder.
+                                        </p>
                                     </div>
 
                                     <Button disabled={isSubmitting} type="submit" className="w-full h-12 text-base font-bold bg-[#00875B] text-white hover:bg-[#006E4A] rounded-lg shadow-sm transition-all mt-4">
                                         {isSubmitting ? "Verifying..." : "Verify & Create Account"}
                                     </Button>
 
-                                    <div className="text-center mt-4">
+                                    <div className="flex flex-col items-center gap-3 mt-4">
+                                        <button
+                                            type="button"
+                                            disabled={resendTimer > 0 || isSubmitting}
+                                            onClick={handleResendOtp}
+                                            className="text-sm font-bold text-[#00875B] hover:text-[#006E4A] disabled:text-[#9CA3AF] disabled:hover:text-[#9CA3AF] transition-colors"
+                                        >
+                                            {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : "Resend OTP"}
+                                        </button>
+
                                         <button
                                             type="button"
                                             onClick={() => setShowOtpStep(false)}

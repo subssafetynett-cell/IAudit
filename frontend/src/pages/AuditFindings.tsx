@@ -532,20 +532,6 @@ export default function AuditFindings() {
                             All OFI, Minor N/C and Major N/C findings across every audit.
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => exportToPDF()} className="gap-2 text-slate-600 border-slate-200">
-                            <Download className="w-4 h-4" /> PDF
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => exportToExcel()} className="gap-2 text-slate-600 border-slate-200">
-                            <Download className="w-4 h-4" /> Excel
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => exportToWord()} className="gap-2 text-slate-600 border-slate-200">
-                            <Download className="w-4 h-4" /> Word
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={fetchFindings} className="gap-2 text-slate-600 border-slate-200 ml-2">
-                            <RefreshCw className="w-4 h-4" /> Refresh
-                        </Button>
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
