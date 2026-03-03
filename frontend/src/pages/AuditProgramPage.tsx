@@ -186,7 +186,7 @@ const AuditProgramPage = () => {
         }
     };
 
-    const handleDownloadPDF = async (plan: any, executionTitle: string) => {
+    const handleDownloadPDF = async (plan: any, executionTitle: string, program?: any) => {
         const doc = new jsPDF();
 
         // Add Logo
@@ -216,6 +216,10 @@ const AuditProgramPage = () => {
 
         const template = auditTemplates.find(t => t.id === plan.templateId);
 
+        // ISO Standards - show ALL selected standards
+        const standards: string[] = program?.isoStandards || plan.isoStandards || [];
+        const standardsText = standards.length > 0 ? standards.join("  |  ") : "N/A";
+
         doc.text(`Execution: ${executionTitle}`, 20, 70);
         doc.text(`Audit Name: ${plan.auditName || plan.auditType || "N/A"}`, 20, 80);
         doc.text(`Date: ${plan.date ? new Date(plan.date).toLocaleDateString() : "TBD"}`, 120, 70);
@@ -225,21 +229,31 @@ const AuditProgramPage = () => {
             doc.text(`Template: ${template.title}`, 20, 90);
         }
 
+        // Render all selected ISO Standards
+        doc.setFontSize(11);
+        doc.setTextColor(16, 185, 129);
+        doc.text("ISO Standards:", 20, 100);
+        doc.setTextColor(60, 60, 60);
+        const splitStandards = doc.splitTextToSize(standardsText, 170);
+        doc.text(splitStandards, 20, 107);
+
+        const offsetAfterStandards = 107 + splitStandards.length * 6;
+
         // Scope & Objective
         doc.setFontSize(14);
         doc.setTextColor(16, 185, 129);
-        doc.text("Scope & Objective", 20, 110);
+        doc.text("Scope & Objective", 20, offsetAfterStandards + 8);
 
         doc.setTextColor(60, 60, 60);
         doc.setFontSize(10);
         const splitScope = doc.splitTextToSize(`Scope: ${plan.scope || "N/A"}`, 170);
-        doc.text(splitScope, 20, 120);
+        doc.text(splitScope, 20, offsetAfterStandards + 18);
 
         const splitObjective = doc.splitTextToSize(`Objective: ${plan.objective || "N/A"}`, 170);
-        doc.text(splitObjective, 20, 120 + (splitScope.length * 5) + 5);
+        doc.text(splitObjective, 20, offsetAfterStandards + 18 + (splitScope.length * 5) + 5);
 
         // Itinerary Table
-        const startY = 120 + (splitScope.length * 5) + (splitObjective.length * 5) + 20;
+        const startY = offsetAfterStandards + 18 + (splitScope.length * 5) + (splitObjective.length * 5) + 20;
 
         doc.setFontSize(14);
         doc.setTextColor(16, 185, 129);
@@ -262,7 +276,7 @@ const AuditProgramPage = () => {
         toast.success("PDF Downloaded");
     };
 
-    const handleDownloadDocx = async (plan: any, executionTitle: string) => {
+    const handleDownloadDocx = async (plan: any, executionTitle: string, program?: any) => {
         // Fetch logo image for Docx
         let logoBuffer: ArrayBuffer | null = null;
         try {
@@ -274,6 +288,9 @@ const AuditProgramPage = () => {
 
         const template = auditTemplates.find(t => t.id === plan.templateId);
         const children: any[] = [];
+
+        // ISO Standards - show ALL selected standards
+        const standards: string[] = program?.isoStandards || plan.isoStandards || [];
 
         // Add Logo if available
         if (logoBuffer) {
@@ -316,6 +333,19 @@ const AuditProgramPage = () => {
                 new Paragraph({
                     children: [new TextRun({ text: `Template: ${template.title}` })]
                 })
+            );
+        }
+
+        // Add all selected ISO Standards as separate lines
+        if (standards.length > 0) {
+            children.push(
+                new Paragraph({
+                    children: [new TextRun({ text: "ISO Standards:", bold: true, color: "10B981" })],
+                    spacing: { before: 200 }
+                }),
+                ...standards.map(std => new Paragraph({
+                    children: [new TextRun({ text: `• ${std}` })],
+                }))
             );
         }
 
@@ -517,10 +547,10 @@ const AuditProgramPage = () => {
                                                                     <DropdownMenuItem onClick={() => navigate("/audit-program/create-plan", { state: { execution: exec, program: siteProgram, site: exec.site, plan } })}>
                                                                         <Eye className="mr-2 h-4 w-4" /> View Details
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => handleDownloadPDF(plan, exec.title)}>
+                                                                    <DropdownMenuItem onClick={() => handleDownloadPDF(plan, exec.title, siteProgram)}>
                                                                         <FileText className="mr-2 h-4 w-4" /> Download PDF
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => handleDownloadDocx(plan, exec.title)}>
+                                                                    <DropdownMenuItem onClick={() => handleDownloadDocx(plan, exec.title, siteProgram)}>
                                                                         <FileText className="mr-2 h-4 w-4" /> Download DOCX
                                                                     </DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => handleDeletePlan(plan.id)} className="text-red-600 focus:text-red-600 focus:bg-red-50">
@@ -611,10 +641,10 @@ const AuditProgramPage = () => {
                                                                 <DropdownMenuItem onClick={() => navigate("/audit-program/create-plan", { state: { execution: exec, program: siteProgram, site: exec.site, plan } })}>
                                                                     <Eye className="mr-2 h-4 w-4" /> View Details
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleDownloadPDF(plan, exec.title)}>
+                                                                <DropdownMenuItem onClick={() => handleDownloadPDF(plan, exec.title, siteProgram)}>
                                                                     <FileText className="mr-2 h-4 w-4" /> Download PDF
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleDownloadDocx(plan, exec.title)}>
+                                                                <DropdownMenuItem onClick={() => handleDownloadDocx(plan, exec.title, siteProgram)}>
                                                                     <FileText className="mr-2 h-4 w-4" /> Download DOCX
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => handleDeletePlan(plan.id)} className="text-red-600 focus:text-red-600 focus:bg-red-50">
