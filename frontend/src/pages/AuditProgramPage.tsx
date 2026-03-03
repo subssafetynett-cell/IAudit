@@ -216,8 +216,9 @@ const AuditProgramPage = () => {
 
         const template = auditTemplates.find(t => t.id === plan.templateId);
 
-        // ISO Standards - show ALL selected standards
-        const standards: string[] = program?.isoStandards || plan.isoStandards || [];
+        // ISO Standards - show ALL selected standards (stored as comma-separated string)
+        const standardsRaw: string = program?.isoStandard || plan.isoStandard || "";
+        const standards: string[] = standardsRaw ? standardsRaw.split(", ").map((s: string) => s.trim()).filter(Boolean) : [];
         const standardsText = standards.length > 0 ? standards.join("  |  ") : "N/A";
 
         doc.text(`Execution: ${executionTitle}`, 20, 70);
@@ -289,8 +290,10 @@ const AuditProgramPage = () => {
         const template = auditTemplates.find(t => t.id === plan.templateId);
         const children: any[] = [];
 
-        // ISO Standards - show ALL selected standards
-        const standards: string[] = program?.isoStandards || plan.isoStandards || [];
+        // ISO Standards - show ALL selected standards (stored as comma-separated string)
+        const standardsRaw: string = program?.isoStandard || plan.isoStandard || "";
+        const standards: string[] = standardsRaw ? standardsRaw.split(", ").map((s: string) => s.trim()).filter(Boolean) : [];
+
 
         // Add Logo if available
         if (logoBuffer) {
