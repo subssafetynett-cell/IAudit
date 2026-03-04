@@ -733,7 +733,7 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // Audit Program routes
 app.get('/api/audit-programs', async (req, res) => {
-    const { userId } = req.query;
+    const { userId, full } = req.query;
 
     // SECURITY: Enforce strict userId filtering. Do not return all programs if userId is missing.
     if (!userId || userId === 'undefined' || userId === 'null') {
@@ -778,13 +778,16 @@ app.get('/api/audit-programs', async (req, res) => {
                         lastName: true
                     }
                 },
-                // For the list view, we only need a flag if schedule data exists
+                // For the list view, we only need a flag if schedule data exists (unless full is true)
                 scheduleData: true
             }
         });
-        // Map to include a simple boolean for UI and strip full data to save bandwidth
+        // Map to include a simple boolean for UI and optionally strip full data to save bandwidth
         const optimizedPrograms = programs.map(p => {
             const isConfigured = p.scheduleData && typeof p.scheduleData === 'object' && Object.keys(p.scheduleData).length > 0;
+            if (full === 'true') {
+                return { ...p, isConfigured };
+            }
             const { scheduleData: _, ...programWithoutData } = p;
             return {
                 ...programWithoutData,

@@ -51,7 +51,7 @@ const AuditProgramPage = () => {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const [sitesRes, programsRes, plansRes] = await Promise.all([
                     fetch(`${API_BASE_URL}/api/sites?userId=${user.id}`),
-                    fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`),
+                    fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}&full=true`),
                     fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`)
                 ]);
                 const sitesData = await sitesRes.json();
