@@ -131,7 +131,7 @@ const AuditProgramPage = () => {
                     duration;
 
         const result = [];
-        const currentDate = new Date(2026, 1, 1);
+        const currentDate = new Date(2026, 0, 1); // Start in January 2026
 
         for (let i = 0; i < count; i++) {
             const monthLabel = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
@@ -158,33 +158,31 @@ const AuditProgramPage = () => {
                 }
             });
 
+            // If clauses were selected, add them
             if (selectedClauses.length > 0) {
-                // Generate a consistent ID for the execution based on program and period
-                // In a real app, this might come from backend if executions were distinct entities
                 const executionId = `${program.name} - ${periodLabel}`;
                 executions.push({
-                    id: executionId, // Add ID for linking
+                    id: executionId,
                     programId: program.id,
                     title: executionId,
+                    period: periodLabel,
                     clauseCount: selectedClauses.length,
                     clauses: selectedClauses
                 });
+            } else {
+                // FALLBACK: If no clauses selected for this SPECIFIC period but it exists in the cycle,
+                // we still create a card for it so the user sees every month.
+                const executionId = `${program.name} - ${periodLabel}`;
+                executions.push({
+                    id: executionId,
+                    programId: program.id,
+                    title: executionId,
+                    period: periodLabel,
+                    clauseCount: CLAUSES.filter(c => !c.isHeading).length,
+                    clauses: CLAUSES.filter(c => !c.isHeading)
+                });
             }
         });
-
-        // If no specific schedule data exists (or user didn't select anything),
-        // we still want to show the audit program so they can create a plan for it.
-        if (executions.length === 0) {
-            const fallbackPeriod = programPeriods[0] || "TBD";
-            const executionId = `${program.name} - ${fallbackPeriod}`;
-            executions.push({
-                id: executionId,
-                programId: program.id,
-                title: executionId,
-                clauseCount: CLAUSES.filter(c => !c.isHeading).length, // assume all clauses if no specific schedule
-                clauses: CLAUSES.filter(c => !c.isHeading)
-            });
-        }
 
         return executions;
     };
