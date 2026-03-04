@@ -627,8 +627,8 @@ const GapAnalysis = () => {
                                 {questions.filter(q => q.clause === currentClause).map((q, idx) => (
                                     <Card key={q.id} className="overflow-hidden">
                                         <CardHeader className="bg-slate-50 border-b py-4">
-                                            <div className="flex justify-between items-start gap-4">
-                                                <div className="flex-1">
+                                            <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
+                                                <div className="flex-1 w-full">
                                                     <div className="text-xs font-bold text-slate-500 uppercase mb-1">
                                                         Question {idx + 1}
                                                     </div>
