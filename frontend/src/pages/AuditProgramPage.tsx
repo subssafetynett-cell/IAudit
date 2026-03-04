@@ -25,60 +25,9 @@ import { Document, Packer, Paragraph, TextRun, ImageRun } from "docx";
 import { saveAs } from "file-saver";
 import logoImg from "@/assets/logo.png";
 import { auditTemplates } from "@/data/auditTemplates";
+import { CLAUSE_MATRIX, ClauseMatrixRow } from "@/data/clauseMapping";
 
-interface Clause {
-    id: string;
-    name: string;
-    isHeading?: boolean;
-}
 
-const CLAUSES: Clause[] = [
-    { id: "4", name: "4. CONTEXT OF THE ORGANISATION", isHeading: true },
-    { id: "4.1", name: "4.1 Understanding the organization & its context" },
-    { id: "4.2", name: "4.2 Understanding the needs and expectations of interested parties" },
-    { id: "4.3", name: "4.3 Determining the scope of the EMS" },
-    { id: "4.4", name: "4.4 Environmental management system" },
-    { id: "5", name: "5 LEADERSHIP", isHeading: true },
-    { id: "5.1", name: "5.1 Leadership and commitment" },
-    { id: "5.2", name: "5.2 Environmental policy" },
-    { id: "5.3", name: "5.3 Organizational roles, responsibilities and authorities" },
-    { id: "6", name: "6 PLANNING", isHeading: true },
-    { id: "6.1", name: "6.1 Actions to address risks & opportunities", isHeading: true },
-    { id: "6.1.1", name: "6.1.1 General" },
-    { id: "6.1.2", name: "6.1.2 Environmental aspects" },
-    { id: "6.1.3", name: "6.1.3 Compliance obligations" },
-    { id: "6.1.4", name: "6.1.4 Planning action" },
-    { id: "6.2", name: "6.2 Environmental objectives and planning to achieve them", isHeading: true },
-    { id: "6.2.1", name: "6.2.1 Environmental objectives" },
-    { id: "6.2.2", name: "6.2.2 Planning actions to achieve environmental objectives" },
-    { id: "7", name: "7 SUPPORT", isHeading: true },
-    { id: "7.1", name: "7.1 Resources" },
-    { id: "7.2", name: "7.2 Competence" },
-    { id: "7.3", name: "7.3 Awareness" },
-    { id: "7.4", name: "7.4 Communication", isHeading: true },
-    { id: "7.4.1", name: "7.4.1 General" },
-    { id: "7.4.2", name: "7.4.2 Internal Communication" },
-    { id: "7.4.3", name: "7.4.3 External Communication" },
-    { id: "7.5", name: "7.5 Documented information", isHeading: true },
-    { id: "7.5.1", name: "7.5.1 General" },
-    { id: "7.5.2", name: "7.5.2 Creating and updating" },
-    { id: "7.5.3", name: "7.5.3 Control of documented information" },
-    { id: "8", name: "8 OPERATIONS", isHeading: true },
-    { id: "8.1", name: "8.1 Operational planning and control" },
-    { id: "8.2", name: "8.2 Emergency Preparedness and Response" },
-    { id: "9", name: "9 PERFORMANCE EVALUATION", isHeading: true },
-    { id: "9.1", name: "9.1 Monitoring, measuring, analysis and evaluation", isHeading: true },
-    { id: "9.1.1", name: "9.1.1 General" },
-    { id: "9.1.2", name: "9.1.2 Evaluation of compliance" },
-    { id: "9.2", name: "9.2 Internal audit", isHeading: true },
-    { id: "9.2.1", name: "9.2.1 General" },
-    { id: "9.2.2", name: "9.2.2 Internal audit programme" },
-    { id: "9.3", name: "9.3 Management review" },
-    { id: "10", name: "10 IMPROVEMENT", isHeading: true },
-    { id: "10.1", name: "10.1 General" },
-    { id: "10.2", name: "10.2 Nonconformity & corrective action" },
-    { id: "10.3", name: "10.3 Continual improvement" },
-];
 
 const AuditProgramPage = () => {
     const [sites, setSites] = useState<any[]>([]);
@@ -144,21 +93,20 @@ const AuditProgramPage = () => {
     const getAuditExecutions = (program: any) => {
         const programPeriods = calculatePeriods(program.frequency, program.duration);
         const executions: any[] = [];
+        const scheduleData = program.scheduleData || {};
 
         programPeriods.forEach((periodLabel, colIndex) => {
-            const selectedClauses: Clause[] = [];
-            CLAUSES.forEach((clause, rowIndex) => {
-                if (program.scheduleData?.[`${rowIndex}-${colIndex}`]) {
+            const selectedClauses: ClauseMatrixRow[] = [];
+            CLAUSE_MATRIX.forEach((clause, rowIndex) => {
+                if (scheduleData[`${rowIndex}-${colIndex}`]) {
                     selectedClauses.push(clause);
                 }
             });
 
             if (selectedClauses.length > 0) {
-                // Generate a consistent ID for the execution based on program and period
-                // In a real app, this might come from backend if executions were distinct entities
                 const executionId = `${program.name} - ${periodLabel}`;
                 executions.push({
-                    id: executionId, // Add ID for linking
+                    id: executionId,
                     programId: program.id,
                     title: executionId,
                     clauseCount: selectedClauses.length,
@@ -606,9 +554,9 @@ const AuditProgramPage = () => {
 
                                                 <div className="flex-1">
                                                     <div className="flex flex-wrap gap-2">
-                                                        {exec.clauses.slice(0, 3).map((clause: Clause) => (
+                                                        {exec.clauses.slice(0, 3).map((clause: ClauseMatrixRow) => (
                                                             <div key={clause.id} className="text-[10px] font-semibold text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 truncate max-w-full">
-                                                                {clause.name}
+                                                                {clause.iso14001 || clause.iso9001 || clause.iso45001}
                                                             </div>
                                                         ))}
                                                         {exec.clauses.length > 3 && (
@@ -647,9 +595,9 @@ const AuditProgramPage = () => {
                                                         </Badge>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {exec.clauses.map((clause: Clause) => (
+                                                        {exec.clauses.map((clause: ClauseMatrixRow) => (
                                                             <span key={clause.id} className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
-                                                                {clause.name}
+                                                                {clause.iso14001 || clause.iso9001 || clause.iso45001}
                                                             </span>
                                                         ))}
                                                     </div>
