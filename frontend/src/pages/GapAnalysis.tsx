@@ -31,6 +31,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { generatePDF, generateWord } from "../utils/gapAnalysisUtils";
 import { Standard, AuditQuestion, SavedGapAnalysis, FindingType } from "../types/gapAnalysis";
 import { getQuestionsForStandard } from "../data/gapAnalysisQuestions";
+import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog";
 
 const GapAnalysis = () => {
     const [step, setStep] = useState<"list" | "setup" | "analysis" | "results">("list");
@@ -56,6 +57,8 @@ const GapAnalysis = () => {
     // Modal State
     const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
     const [newQuestionText, setNewQuestionText] = useState("");
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
 
     // Refs for Charts (for PDF generation)
     const pieChartRef = useRef<HTMLDivElement>(null);
@@ -220,9 +223,17 @@ const GapAnalysis = () => {
         handleAnswerChange(id, "evidenceImage", "");
     };
 
-    const handleDeleteQuestion = (id: string) => {
-        setQuestions(prev => prev.filter(q => q.id !== id));
+    const promptDeleteQuestion = (id: string) => {
+        setQuestionToDelete(id);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDeleteQuestion = () => {
+        if (!questionToDelete) return;
+        setQuestions(prev => prev.filter(q => q.id !== questionToDelete));
         toast.success("Question deleted");
+        setIsDeleteDialogOpen(false);
+        setQuestionToDelete(null);
     };
 
     const handleQuestionTextChange = (id: string, text: string) => {
@@ -698,7 +709,7 @@ const GapAnalysis = () => {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            onClick={() => handleDeleteQuestion(q.id)}
+                                                            onClick={() => promptDeleteQuestion(q.id)}
                                                             className="text-slate-400 hover:text-red-500 hover:bg-red-50 ml-1 rounded-full w-8 h-8"
                                                             title="Delete Question"
                                                         >
@@ -830,6 +841,14 @@ const GapAnalysis = () => {
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
+
+                            <DeleteConfirmationDialog
+                                open={isDeleteDialogOpen}
+                                onOpenChange={setIsDeleteDialogOpen}
+                                onConfirm={confirmDeleteQuestion}
+                                title="Delete Question?"
+                                description="Are you sure you want to delete this question? This action cannot be undone."
+                            />
                         </div>
                     )
                 }
