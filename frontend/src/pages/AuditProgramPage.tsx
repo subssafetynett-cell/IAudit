@@ -660,20 +660,38 @@ const AuditProgramPage = () => {
                                                 </div>
 
                                                 <div className="flex-1">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {exec.clauses.slice(0, 3).map((clause: Clause) => (
-                                                            <div key={clause.id} className="text-[10px] font-semibold text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 truncate max-w-full flex items-center gap-2">
-                                                                {clause.standard && (
-                                                                    <span className="text-[8px] uppercase font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm shrink-0">
-                                                                        {clause.standard}
-                                                                    </span>
-                                                                )}
-                                                                <span className="truncate">{clause.name}</span>
-                                                            </div>
-                                                        ))}
-                                                        {exec.clauses.length > 3 && (
-                                                            <span className="text-[10px] font-bold text-slate-400 px-2 truncate">+{exec.clauses.length - 3} more</span>
-                                                        )}
+                                                    <div className="flex flex-col gap-2">
+                                                        {(() => {
+                                                            const groups = new Map<string, Clause[]>();
+                                                            exec.clauses.forEach((clause: Clause) => {
+                                                                const lastDashIndex = clause.id.lastIndexOf('-');
+                                                                const baseId = lastDashIndex !== -1 ? clause.id.substring(0, lastDashIndex) : clause.id;
+                                                                if (!groups.has(baseId)) groups.set(baseId, []);
+                                                                groups.get(baseId)!.push(clause);
+                                                            });
+                                                            const groupArray = Array.from(groups.values());
+                                                            return (
+                                                                <>
+                                                                    {groupArray.slice(0, 3).map((group, gIdx) => (
+                                                                        <div key={gIdx} className="w-full text-[10px] font-semibold text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 flex flex-col gap-1.5">
+                                                                            {group.map((clause) => (
+                                                                                <div key={clause.id} className="flex items-center gap-2 truncate max-w-full">
+                                                                                    {clause.standard && (
+                                                                                        <span className="text-[8px] uppercase font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm shrink-0">
+                                                                                            {clause.standard}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <span className="truncate">{clause.name}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    ))}
+                                                                    {groupArray.length > 3 && (
+                                                                        <span className="text-[10px] font-bold text-slate-400 px-2 truncate mt-1">+{groupArray.length - 3} more</span>
+                                                                    )}
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
 
@@ -706,17 +724,30 @@ const AuditProgramPage = () => {
                                                             {exec.siteName}
                                                         </Badge>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {exec.clauses.map((clause: Clause) => (
-                                                            <span key={clause.id} className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                                                                {clause.standard && (
-                                                                    <span className="text-[10px] uppercase font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm shrink-0">
-                                                                        {clause.standard}
-                                                                    </span>
-                                                                )}
-                                                                <span>{clause.name}</span>
-                                                            </span>
-                                                        ))}
+                                                    <div className="flex flex-col gap-2">
+                                                        {(() => {
+                                                            const groups = new Map<string, Clause[]>();
+                                                            exec.clauses.forEach((clause: Clause) => {
+                                                                const lastDashIndex = clause.id.lastIndexOf('-');
+                                                                const baseId = lastDashIndex !== -1 ? clause.id.substring(0, lastDashIndex) : clause.id;
+                                                                if (!groups.has(baseId)) groups.set(baseId, []);
+                                                                groups.get(baseId)!.push(clause);
+                                                            });
+                                                            return Array.from(groups.values()).map((group, gIdx) => (
+                                                                <div key={gIdx} className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-2 rounded-lg flex flex-col gap-1.5 border border-slate-100 w-full md:w-fit">
+                                                                    {group.map(clause => (
+                                                                        <div key={clause.id} className="flex items-center gap-2">
+                                                                            {clause.standard && (
+                                                                                <span className="text-[10px] uppercase font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm shrink-0">
+                                                                                    {clause.standard}
+                                                                                </span>
+                                                                            )}
+                                                                            <span>{clause.name}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ));
+                                                        })()}
                                                     </div>
                                                 </div>
 
