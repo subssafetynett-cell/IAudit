@@ -185,7 +185,7 @@ const AuditProgramPage = () => {
     };
 
     const hasPlan = (programId: number, executionId: string) => {
-        return auditPlans.some(p => p.auditProgramId === programId && p.executionId === executionId);
+        return (auditPlans || []).some(p => p.auditProgramId === programId && p.executionId === executionId);
     };
 
     const handleDeletePlan = async (planId: number) => {
@@ -248,7 +248,7 @@ const AuditProgramPage = () => {
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
 
-        const template = auditTemplates.find(t => t.id === plan.templateId);
+        const template = (auditTemplates || []).find(t => t.id === plan.templateId);
 
         // ISO Standards - show ALL selected standards (stored as comma-separated string)
         const standardsRaw: string = program?.isoStandard || plan.isoStandard || "";
@@ -342,7 +342,7 @@ const AuditProgramPage = () => {
             console.error("Failed to fetch logo for Word doc:", error);
         }
 
-        const template = auditTemplates.find(t => t.id === plan.templateId);
+        const template = (auditTemplates || []).find(t => t.id === plan.templateId);
         const children: any[] = [];
 
         // ISO Standards - show ALL selected standards (stored as comma-separated string)
@@ -523,11 +523,11 @@ const AuditProgramPage = () => {
                 {sites.length > 0 ? (
                     <div className="space-y-8 relative z-10">
                         {(() => {
-                            const allExecutions = auditPrograms
+                            const allExecutions = (auditPrograms || [])
                                 .filter(p => p.siteId.toString() === activeSiteId)
                                 .flatMap(p => {
-                                    const site = sites.find(s => s.id === p.siteId);
-                                    const executions = getAuditExecutions(p);
+                                    const site = (sites || []).find(s => s.id === p.siteId);
+                                    const executions = getAuditExecutions(p) || [];
                                     return executions.map(exec => ({
                                         ...exec,
                                         siteName: site?.name || "N/A",
@@ -535,7 +535,7 @@ const AuditProgramPage = () => {
                                     }));
                                 });
 
-                            if (allExecutions.length === 0) {
+                            if (!allExecutions || allExecutions.length === 0) {
                                 return (
                                     <div className="h-[300px] flex flex-col items-center justify-center bg-white/40 backdrop-blur-sm rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 gap-4 transition-all hover:bg-white/60 focus:bg-white/60">
                                         <ClipboardCheck className="w-12 h-12 opacity-20" />
@@ -552,9 +552,9 @@ const AuditProgramPage = () => {
                                     "animate-in fade-in slide-in-from-bottom-4 duration-700",
                                     viewMode === "card" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-3"
                                 )}>
-                                    {allExecutions.map((exec, idx) => {
-                                        const siteProgram = auditPrograms.find(p => p.id === exec.programId);
-                                        const plan = auditPlans.find(p => p.auditProgramId === exec.programId && p.executionId === exec.id);
+                                    {(allExecutions || []).map((exec, idx) => {
+                                        const siteProgram = (auditPrograms || []).find(p => p.id === exec.programId);
+                                        const plan = (auditPlans || []).find(p => p.auditProgramId === exec.programId && p.executionId === exec.id);
                                         const planExists = !!plan;
 
                                         return viewMode === "card" ? (
