@@ -152,38 +152,15 @@ const AuditProgramPage = () => {
             } else {
                 // FALLBACK: If no clauses selected for this SPECIFIC period but it exists in the cycle,
                 // we still create a card for it so the user sees every month.
-                // For the fallback, we'll list all non-heading clauses from active standards
-                const fallbackClauses: Clause[] = [];
-                CLAUSE_MATRIX.filter(cm => !cm.isHeading).forEach(cm => {
-                    const stds = [
-                        { key: 'iso9001', label: '9001', active: is9001 },
-                        { key: 'iso14001', label: '14001', active: is14001 },
-                        { key: 'iso45001', label: '45001', active: is45001 }
-                    ];
-
-                    stds.forEach(std => {
-                        if (std.active) {
-                            const clauseName = (cm as any)[std.key];
-                            if (clauseName && clauseName !== "Corresponding Clause does not exist") {
-                                fallbackClauses.push({
-                                    id: `${cm.id}-${std.label}`,
-                                    name: clauseName,
-                                    isHeading: false,
-                                    standard: std.label
-                                });
-                            }
-                        }
-                    });
-                });
-
+                // We leave the clauses empty instead of populating it with all clauses.
                 const executionId = `${program.name} - ${periodLabel}`;
                 executions.push({
                     id: executionId,
                     programId: program.id,
                     title: executionId,
                     period: periodLabel,
-                    clauseCount: fallbackClauses.length,
-                    clauses: fallbackClauses,
+                    clauseCount: 0,
+                    clauses: [],
                     site: sites.find(s => s.id === program.siteId)
                 });
             }
