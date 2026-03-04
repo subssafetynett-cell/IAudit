@@ -40,8 +40,8 @@ async function diagnose() {
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'subs.safetynett@gmail.com',
-                pass: 'wdve zudb tzwf spyo'
+                user: 'noreply@iaudit.global',
+                pass: 'zwxcmnzmhmqtpmt'
             }
         });
 

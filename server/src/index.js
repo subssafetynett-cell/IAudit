@@ -59,8 +59,8 @@ const router = express.Router();
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'subs.safetynett@gmail.com',
-        pass: 'wdve zudb tzwf spyo'
+        user: 'noreply@iaudit.global',
+        pass: 'zwxcmnzmhmqtpmt'
     },
     connectionTimeout: 5000, // 5 seconds
     greetingTimeout: 5000    // 5 seconds
@@ -440,7 +440,7 @@ const sendOtpLogic = async (req, res) => {
 
         step = 'Send Email';
         const mailOptions = {
-            from: 'subs.safetynett@gmail.com',
+            from: 'noreply@iaudit.global',
             to: email,
             subject: 'Your AuditMate Verification Code',
             text: `Your verification code is: ${otp}. This code will expire in 5 minutes.`
@@ -647,7 +647,7 @@ app.post('/api/users', async (req, res) => {
         // Send welcome email if requested — fire and forget, don't block the response
         if (sendWelcomeEmail) {
             const mailOptions = {
-                from: 'subs.safetynett@gmail.com',
+                from: 'noreply@iaudit.global',
                 to: email,
                 subject: 'Welcome to AuditMate!',
                 html: `

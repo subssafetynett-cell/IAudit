@@ -269,13 +269,17 @@ const CreateAuditPlanPage = () => {
 
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
+    };
+
+    const handleDrop = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
         if (draggedItemIndex === null || draggedItemIndex === index) return;
         const newItinerary = [...itinerary];
         const draggedItem = newItinerary[draggedItemIndex];
         newItinerary.splice(draggedItemIndex, 1);
         newItinerary.splice(index, 0, draggedItem);
         setItinerary(newItinerary);
-        setDraggedItemIndex(index);
+        setDraggedItemIndex(null);
     };
 
     const handleDragEnd = () => {
@@ -548,9 +552,10 @@ const CreateAuditPlanPage = () => {
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, index)}
                                         onDragOver={(e) => handleDragOver(e, index)}
+                                        onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
                                         className={cn(
-                                            "p-4 flex items-start gap-4 group transition-all hover:bg-slate-50/50 cursor-default relative",
+                                            "grid grid-cols-[auto_1fr_1fr_auto] gap-4 p-4 items-start group transition-all hover:bg-slate-50/50 relative",
                                             draggedItemIndex === index ? "bg-emerald-50 opacity-50" : "opacity-100"
                                         )}
                                     >
@@ -577,7 +582,7 @@ const CreateAuditPlanPage = () => {
                                         </div>
 
                                         {/* Content Inputs */}
-                                        <div className="flex-1 mt-1">
+                                        <div className="mt-1">
                                             <AutoResizeTextarea
                                                 value={item.activity}
                                                 onChange={(e: any) => handleItineraryChange(item.id, 'activity', e.target.value)}
@@ -585,7 +590,7 @@ const CreateAuditPlanPage = () => {
                                                 placeholder="Activity Description"
                                             />
                                         </div>
-                                        <div className="flex-1 mt-1">
+                                        <div className="mt-1">
                                             <AutoResizeTextarea
                                                 value={item.notes}
                                                 onChange={(e: any) => handleItineraryChange(item.id, 'notes', e.target.value)}
@@ -594,9 +599,11 @@ const CreateAuditPlanPage = () => {
                                             />
                                         </div>
 
-                                        <Button variant="ghost" size="icon" onClick={() => removeItineraryItem(item.id)} className="w-8 h-8 flex-shrink-0 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                        <div className="w-8 flex justify-end">
+                                            <Button variant="ghost" size="icon" onClick={() => removeItineraryItem(item.id)} className="w-8 h-8 flex-shrink-0 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
