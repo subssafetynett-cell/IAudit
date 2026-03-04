@@ -25,6 +25,7 @@ import { Document, Packer, Paragraph, TextRun, ImageRun } from "docx";
 import { saveAs } from "file-saver";
 import logoImg from "@/assets/logo.png";
 import { auditTemplates } from "@/data/auditTemplates";
+import { CLAUSE_MATRIX, ClauseMatrixRow } from "@/data/clauseMapping";
 
 interface Clause {
     id: string;
@@ -32,53 +33,7 @@ interface Clause {
     isHeading?: boolean;
 }
 
-const CLAUSES: Clause[] = [
-    { id: "4", name: "4. CONTEXT OF THE ORGANISATION", isHeading: true },
-    { id: "4.1", name: "4.1 Understanding the organization & its context" },
-    { id: "4.2", name: "4.2 Understanding the needs and expectations of interested parties" },
-    { id: "4.3", name: "4.3 Determining the scope of the EMS" },
-    { id: "4.4", name: "4.4 Environmental management system" },
-    { id: "5", name: "5 LEADERSHIP", isHeading: true },
-    { id: "5.1", name: "5.1 Leadership and commitment" },
-    { id: "5.2", name: "5.2 Environmental policy" },
-    { id: "5.3", name: "5.3 Organizational roles, responsibilities and authorities" },
-    { id: "6", name: "6 PLANNING", isHeading: true },
-    { id: "6.1", name: "6.1 Actions to address risks & opportunities", isHeading: true },
-    { id: "6.1.1", name: "6.1.1 General" },
-    { id: "6.1.2", name: "6.1.2 Environmental aspects" },
-    { id: "6.1.3", name: "6.1.3 Compliance obligations" },
-    { id: "6.1.4", name: "6.1.4 Planning action" },
-    { id: "6.2", name: "6.2 Environmental objectives and planning to achieve them", isHeading: true },
-    { id: "6.2.1", name: "6.2.1 Environmental objectives" },
-    { id: "6.2.2", name: "6.2.2 Planning actions to achieve environmental objectives" },
-    { id: "7", name: "7 SUPPORT", isHeading: true },
-    { id: "7.1", name: "7.1 Resources" },
-    { id: "7.2", name: "7.2 Competence" },
-    { id: "7.3", name: "7.3 Awareness" },
-    { id: "7.4", name: "7.4 Communication", isHeading: true },
-    { id: "7.4.1", name: "7.4.1 General" },
-    { id: "7.4.2", name: "7.4.2 Internal Communication" },
-    { id: "7.4.3", name: "7.4.3 External Communication" },
-    { id: "7.5", name: "7.5 Documented information", isHeading: true },
-    { id: "7.5.1", name: "7.5.1 General" },
-    { id: "7.5.2", name: "7.5.2 Creating and updating" },
-    { id: "7.5.3", name: "7.5.3 Control of documented information" },
-    { id: "8", name: "8 OPERATIONS", isHeading: true },
-    { id: "8.1", name: "8.1 Operational planning and control" },
-    { id: "8.2", name: "8.2 Emergency Preparedness and Response" },
-    { id: "9", name: "9 PERFORMANCE EVALUATION", isHeading: true },
-    { id: "9.1", name: "9.1 Monitoring, measuring, analysis and evaluation", isHeading: true },
-    { id: "9.1.1", name: "9.1.1 General" },
-    { id: "9.1.2", name: "9.1.2 Evaluation of compliance" },
-    { id: "9.2", name: "9.2 Internal audit", isHeading: true },
-    { id: "9.2.1", name: "9.2.1 General" },
-    { id: "9.2.2", name: "9.2.2 Internal audit programme" },
-    { id: "9.3", name: "9.3 Management review" },
-    { id: "10", name: "10 IMPROVEMENT", isHeading: true },
-    { id: "10.1", name: "10.1 General" },
-    { id: "10.2", name: "10.2 Nonconformity & corrective action" },
-    { id: "10.3", name: "10.3 Continual improvement" },
-];
+// CLAUSES array removed in favor of imported CLAUSE_MATRIX
 
 const AuditProgramPage = () => {
     const [sites, setSites] = useState<any[]>([]);
@@ -149,12 +104,28 @@ const AuditProgramPage = () => {
     const getAuditExecutions = (program: any) => {
         const programPeriods = calculatePeriods(program.frequency, program.duration);
         const executions: any[] = [];
+        const isoStandard = program.isoStandard || "";
+        const is9001 = isoStandard.includes("9001");
+        const is14001 = isoStandard.includes("14001");
+        const is45001 = isoStandard.includes("45001");
 
         programPeriods.forEach((periodLabel, colIndex) => {
             const selectedClauses: Clause[] = [];
-            CLAUSES.forEach((clause, rowIndex) => {
+            CLAUSE_MATRIX.forEach((matrixRow, rowIndex) => {
                 if (program.scheduleData?.[`${rowIndex}-${colIndex}`]) {
-                    selectedClauses.push(clause);
+                    let clauseName = "";
+                    if (is9001) clauseName = matrixRow.iso9001;
+                    else if (is14001) clauseName = matrixRow.iso14001;
+                    else if (is45001) clauseName = matrixRow.iso45001;
+                    else clauseName = matrixRow.iso14001; // Default to 14001 as fallback for naming
+
+                    if (clauseName && clauseName !== "Corresponding Clause does not exist") {
+                        selectedClauses.push({
+                            id: matrixRow.id,
+                            name: clauseName,
+                            isHeading: matrixRow.isHeading
+                        });
+                    }
                 }
             });
 
@@ -167,19 +138,31 @@ const AuditProgramPage = () => {
                     title: executionId,
                     period: periodLabel,
                     clauseCount: selectedClauses.length,
-                    clauses: selectedClauses
+                    clauses: selectedClauses,
+                    site: sites.find(s => s.id === program.siteId)
                 });
             } else {
                 // FALLBACK: If no clauses selected for this SPECIFIC period but it exists in the cycle,
                 // we still create a card for it so the user sees every month.
+                // For the fallback, we'll list all non-heading clauses from 14001 as a general reference
+                const fallbackClauses = CLAUSE_MATRIX
+                    .filter(cm => !cm.isHeading)
+                    .map(cm => ({
+                        id: cm.id,
+                        name: is9001 ? cm.iso9001 : (is45001 ? cm.iso45001 : cm.iso14001),
+                        isHeading: false
+                    }))
+                    .filter(c => c.name !== "Corresponding Clause does not exist");
+
                 const executionId = `${program.name} - ${periodLabel}`;
                 executions.push({
                     id: executionId,
                     programId: program.id,
                     title: executionId,
                     period: periodLabel,
-                    clauseCount: CLAUSES.filter(c => !c.isHeading).length,
-                    clauses: CLAUSES.filter(c => !c.isHeading)
+                    clauseCount: fallbackClauses.length,
+                    clauses: fallbackClauses,
+                    site: sites.find(s => s.id === program.siteId)
                 });
             }
         });

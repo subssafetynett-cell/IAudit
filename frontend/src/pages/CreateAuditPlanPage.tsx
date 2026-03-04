@@ -181,7 +181,7 @@ const CreateAuditPlanPage = () => {
         } else if (execution) {
             // Create Mode Defaults
             const execLabel = execution.title || execution.name || 'New Audit';
-            setAuditName(`${execLabel} - ${format(new Date(), 'MMM yyyy')}`);
+            setAuditName(execLabel);
 
             // Try to extract date from the title if it formats like "Annual Quality Audit - JAN 26"
             const titleParts = execLabel.split(' - ');

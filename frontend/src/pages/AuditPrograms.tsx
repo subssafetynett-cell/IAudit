@@ -151,7 +151,7 @@ const AuditPrograms = () => {
                     durationVal; // Annually
 
         const result = [];
-        const currentDate = new Date(2026, 1, 1); // Start from Feb 2026
+        const currentDate = new Date(2026, 0, 1); // Start from Jan 2026
 
         for (let i = 0; i < count; i++) {
             const monthLabel = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();

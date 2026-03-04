@@ -74,7 +74,7 @@ const calculatePeriods = (frequency: string, duration: number) => {
           ? duration * 2
           : duration;
   const result = [];
-  const currentDate = new Date(2026, 1, 1);
+  const currentDate = new Date(2026, 0, 1); // Start in January 2026
   for (let i = 0; i < count; i++) {
     const monthLabel = currentDate
       .toLocaleString("default", { month: "short" })
