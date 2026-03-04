@@ -31,6 +31,7 @@ interface Clause {
     id: string;
     name: string;
     isHeading?: boolean;
+    standard?: string;
 }
 
 // CLAUSES array removed in favor of imported CLAUSE_MATRIX
@@ -113,19 +114,26 @@ const AuditProgramPage = () => {
             const selectedClauses: Clause[] = [];
             CLAUSE_MATRIX.forEach((matrixRow, rowIndex) => {
                 if (program.scheduleData?.[`${rowIndex}-${colIndex}`]) {
-                    let clauseName = "";
-                    if (is9001) clauseName = matrixRow.iso9001;
-                    else if (is14001) clauseName = matrixRow.iso14001;
-                    else if (is45001) clauseName = matrixRow.iso45001;
-                    else clauseName = matrixRow.iso14001; // Default to 14001 as fallback for naming
+                    // Check each potential standard column
+                    const stds = [
+                        { key: 'iso9001', label: '9001', active: is9001 },
+                        { key: 'iso14001', label: '14001', active: is14001 },
+                        { key: 'iso45001', label: '45001', active: is45001 }
+                    ];
 
-                    if (clauseName && clauseName !== "Corresponding Clause does not exist") {
-                        selectedClauses.push({
-                            id: matrixRow.id,
-                            name: clauseName,
-                            isHeading: matrixRow.isHeading
-                        });
-                    }
+                    stds.forEach(std => {
+                        if (std.active) {
+                            const clauseName = (matrixRow as any)[std.key];
+                            if (clauseName && clauseName !== "Corresponding Clause does not exist") {
+                                selectedClauses.push({
+                                    id: `${matrixRow.id}-${std.label}`,
+                                    name: clauseName,
+                                    isHeading: matrixRow.isHeading,
+                                    standard: std.label
+                                });
+                            }
+                        }
+                    });
                 }
             });
 
@@ -144,15 +152,29 @@ const AuditProgramPage = () => {
             } else {
                 // FALLBACK: If no clauses selected for this SPECIFIC period but it exists in the cycle,
                 // we still create a card for it so the user sees every month.
-                // For the fallback, we'll list all non-heading clauses from 14001 as a general reference
-                const fallbackClauses = CLAUSE_MATRIX
-                    .filter(cm => !cm.isHeading)
-                    .map(cm => ({
-                        id: cm.id,
-                        name: is9001 ? cm.iso9001 : (is45001 ? cm.iso45001 : cm.iso14001),
-                        isHeading: false
-                    }))
-                    .filter(c => c.name !== "Corresponding Clause does not exist");
+                // For the fallback, we'll list all non-heading clauses from active standards
+                const fallbackClauses: Clause[] = [];
+                CLAUSE_MATRIX.filter(cm => !cm.isHeading).forEach(cm => {
+                    const stds = [
+                        { key: 'iso9001', label: '9001', active: is9001 },
+                        { key: 'iso14001', label: '14001', active: is14001 },
+                        { key: 'iso45001', label: '45001', active: is45001 }
+                    ];
+
+                    stds.forEach(std => {
+                        if (std.active) {
+                            const clauseName = (cm as any)[std.key];
+                            if (clauseName && clauseName !== "Corresponding Clause does not exist") {
+                                fallbackClauses.push({
+                                    id: `${cm.id}-${std.label}`,
+                                    name: clauseName,
+                                    isHeading: false,
+                                    standard: std.label
+                                });
+                            }
+                        }
+                    });
+                });
 
                 const executionId = `${program.name} - ${periodLabel}`;
                 executions.push({
@@ -273,8 +295,30 @@ const AuditProgramPage = () => {
         const splitObjective = doc.splitTextToSize(`Objective: ${plan.objective || "N/A"}`, 170);
         doc.text(splitObjective, 20, offsetAfterStandards + 18 + (splitScope.length * 5) + 5);
 
+        // Scheduled Clauses
+        doc.setFontSize(14);
+        doc.setTextColor(16, 185, 129);
+        doc.text("Scheduled Clauses", 20, offsetAfterStandards + 18 + (splitScope.length * 5) + (splitObjective.length * 5) + 15);
+
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        let currentY = offsetAfterStandards + 18 + (splitScope.length * 5) + (splitObjective.length * 5) + 25;
+
+        const execClauses = getAuditExecutions(program).find(e => e.id === executionTitle)?.clauses || [];
+
+        execClauses.forEach((clause: any) => {
+            if (currentY > 270) {
+                doc.addPage();
+                currentY = 20;
+            }
+            const clauseText = clause.standard ? `[${clause.standard}] ${clause.name}` : clause.name;
+            const splitClause = doc.splitTextToSize(`• ${clauseText}`, 170);
+            doc.text(splitClause, 20, currentY);
+            currentY += splitClause.length * 5 + 2;
+        });
+
         // Itinerary Table
-        const startY = offsetAfterStandards + 18 + (splitScope.length * 5) + (splitObjective.length * 5) + 20;
+        const startY = currentY + 10;
 
         doc.setFontSize(14);
         doc.setTextColor(16, 185, 129);
@@ -416,8 +460,19 @@ const AuditProgramPage = () => {
                 spacing: { after: 400 }
             }),
             new Paragraph({
-                children: [new TextRun({ text: "Itinerary", bold: true, size: 32, color: "10B981" })],
+                children: [new TextRun({ text: "Scheduled Clauses", bold: true, size: 32, color: "10B981" })],
                 spacing: { after: 200 }
+            }),
+            ...(getAuditExecutions(program).find(e => e.id === executionTitle)?.clauses || []).map((clause: any) => new Paragraph({
+                children: [
+                    new TextRun({ text: clause.standard ? `[${clause.standard}] ` : "", bold: true, color: "10B981" }),
+                    new TextRun({ text: clause.name })
+                ],
+                bullet: { level: 0 }
+            })),
+            new Paragraph({
+                children: [new TextRun({ text: "Itinerary", bold: true, size: 32, color: "10B981" })],
+                spacing: { before: 400, after: 200 }
             }),
             ...((plan.itinerary as any[]) || []).map(item => new Paragraph({
                 children: [new TextRun({
@@ -607,8 +662,13 @@ const AuditProgramPage = () => {
                                                 <div className="flex-1">
                                                     <div className="flex flex-wrap gap-2">
                                                         {exec.clauses.slice(0, 3).map((clause: Clause) => (
-                                                            <div key={clause.id} className="text-[10px] font-semibold text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 truncate max-w-full">
-                                                                {clause.name}
+                                                            <div key={clause.id} className="text-[10px] font-semibold text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 truncate max-w-full flex items-center gap-2">
+                                                                {clause.standard && (
+                                                                    <span className="text-[8px] uppercase font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm shrink-0">
+                                                                        {clause.standard}
+                                                                    </span>
+                                                                )}
+                                                                <span className="truncate">{clause.name}</span>
                                                             </div>
                                                         ))}
                                                         {exec.clauses.length > 3 && (
@@ -648,8 +708,13 @@ const AuditProgramPage = () => {
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {exec.clauses.map((clause: Clause) => (
-                                                            <span key={clause.id} className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
-                                                                {clause.name}
+                                                            <span key={clause.id} className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                                                                {clause.standard && (
+                                                                    <span className="text-[10px] uppercase font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm shrink-0">
+                                                                        {clause.standard}
+                                                                    </span>
+                                                                )}
+                                                                <span>{clause.name}</span>
                                                             </span>
                                                         ))}
                                                     </div>

@@ -660,7 +660,12 @@ const CreateAuditPlanPage = () => {
                             <CardContent className="p-6">
                                 <div className="flex flex-wrap gap-2">
                                     {execution.clauses.map((clause: any) => (
-                                        <Badge key={clause.id} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 py-1.5 px-3">
+                                        <Badge key={clause.id} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 py-1.5 px-3 flex items-center gap-1.5">
+                                            {clause.standard && (
+                                                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm shrink-0">
+                                                    {clause.standard}
+                                                </span>
+                                            )}
                                             {clause.name}
                                         </Badge>
                                     ))}

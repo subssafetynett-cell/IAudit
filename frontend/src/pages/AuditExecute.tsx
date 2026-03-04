@@ -2404,11 +2404,26 @@ const AuditExecute = () => {
                 >
                   {/* Header */}
                   <div className="bg-slate-800 text-white p-4">
-                    <h3 className="text-xl font-bold flex items-center gap-3">
+                    <h3 className="text-xl font-bold flex items-center gap-4">
                       <span className="bg-white/20 px-2 py-0.5 rounded text-sm shrink-0">
                         Clause {clause.id}
                       </span>
-                      {clause.iso9001 || clause.iso14001 || clause.iso45001}
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex gap-2 mb-1.5">
+                          {plan?.auditProgram?.isoStandard?.includes("9001") && clause.iso9001 && clause.iso9001 !== "Corresponding Clause does not exist" && (
+                            <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-100 px-2 py-0.5 rounded border border-emerald-500/30 shadow-sm">ISO 9001</span>
+                          )}
+                          {plan?.auditProgram?.isoStandard?.includes("14001") && clause.iso14001 && clause.iso14001 !== "Corresponding Clause does not exist" && (
+                            <span className="text-[10px] font-black bg-blue-500/20 text-blue-100 px-2 py-0.5 rounded border border-blue-500/30 shadow-sm">ISO 14001</span>
+                          )}
+                          {plan?.auditProgram?.isoStandard?.includes("45001") && clause.iso45001 && clause.iso45001 !== "Corresponding Clause does not exist" && (
+                            <span className="text-[10px] font-black bg-orange-500/20 text-orange-100 px-2 py-0.5 rounded border border-orange-500/30 shadow-sm">ISO 45001</span>
+                          )}
+                        </div>
+                        <span className="text-lg leading-tight truncate">
+                          {clause.iso9001 || clause.iso14001 || clause.iso45001}
+                        </span>
+                      </div>
                     </h3>
                   </div>
 
