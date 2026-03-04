@@ -366,8 +366,21 @@ const AuditPrograms = () => {
     const selectedClausesList = getSelectedClausesList();
 
     const handleDownloadPDF = async (program: any) => {
+        // Fetch full program details to ensure scheduleData is available
+        let fullProgram = program;
+        if (!program.scheduleData) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/audit-programs/${program.id}`);
+                if (res.ok) fullProgram = await res.json();
+            } catch (e) {
+                console.error("Failed to fetch full program details for PDF", e);
+            }
+        }
         const doc = new jsPDF({ orientation: 'landscape' });
-        const programPeriods = calculatePeriods(program.frequency, program.duration);
+        const programPeriods = calculatePeriods(fullProgram.frequency, fullProgram.duration);
+        // Reassign program to fullProgram for the rest of the function
+        program = fullProgram;
+
 
         // Add Logo - compressed via canvas to prevent huge file sizes
         try {
@@ -503,6 +516,17 @@ const AuditPrograms = () => {
     };
 
     const handleDownloadWord = async (program: any) => {
+        // Fetch full program details to ensure scheduleData is available
+        let fullProgram = program;
+        if (!program.scheduleData) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/audit-programs/${program.id}`);
+                if (res.ok) fullProgram = await res.json();
+            } catch (e) {
+                console.error("Failed to fetch full program details for Word", e);
+            }
+        }
+        program = fullProgram;
         const programPeriods = calculatePeriods(program.frequency, program.duration);
         // Fetch logo image for Docx - compressed via canvas to prevent huge file sizes
         let logoBuffer: ArrayBuffer | null = null;
