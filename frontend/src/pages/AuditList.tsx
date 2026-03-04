@@ -44,7 +44,7 @@ const AuditList = () => {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const res = await fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`);
                 const data = await res.json();
-                setAuditPlans(data);
+                setAuditPlans(Array.isArray(data) ? data : []);
             } catch (error) {
                 console.error("Failed to fetch audit plans:", error);
                 toast.error("Failed to load audit plans");

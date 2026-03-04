@@ -101,13 +101,18 @@ const AuditProgramPage = () => {
                 const sitesData = await sitesRes.json();
                 const programsData = await programsRes.json();
                 const plansData = await plansRes.json();
-                setSites(sitesData);
-                setAuditPrograms(programsData);
-                setAuditPlans(plansData);
+
+                const validSites = Array.isArray(sitesData) ? sitesData : [];
+                const validPrograms = Array.isArray(programsData) ? programsData : [];
+                const validPlans = Array.isArray(plansData) ? plansData : [];
+
+                setSites(validSites);
+                setAuditPrograms(validPrograms);
+                setAuditPlans(validPlans);
 
                 // Set first site as default if activeSiteId is not set
-                if (sitesData.length > 0) {
-                    setActiveSiteId(sitesData[0].id.toString());
+                if (validSites.length > 0) {
+                    setActiveSiteId(validSites[0].id.toString());
                 }
             } catch (error) {
                 console.error("Failed to fetch data:", error);

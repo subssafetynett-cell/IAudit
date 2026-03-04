@@ -108,7 +108,7 @@ const AuditExecute = () => {
 
   // Use the template attached to the plan, or fallback
   const templateId = plan?.templateId;
-  const template = auditTemplates.find((t) => t.id === templateId);
+  const template = (auditTemplates || []).find((t) => t.id === templateId);
 
   // --- Pre-calculate Schedule Data ---
   let colIndex = -1;
