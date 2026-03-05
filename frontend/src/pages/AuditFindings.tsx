@@ -87,10 +87,12 @@ function extractFindings(plan: any): Finding[] {
     const auditName: string = plan.auditName || `Audit #${plan.id}`;
 
     const mapType = (raw: string | undefined): FindingType | null => {
-        if (!raw || raw === "C" || raw.trim() === "") return null;
-        if (raw === "OFI") return "OFI";
-        if (raw === "Min" || raw === "Minor") return "Minor";
-        if (raw === "Maj" || raw === "Major") return "Major";
+        if (!raw || typeof raw !== 'string') return null;
+        const normalized = raw.trim().toLowerCase();
+        if (normalized === "c" || normalized === "compliant" || normalized === "") return null;
+        if (normalized.includes("ofi") || normalized.includes("opportunity")) return "OFI";
+        if (normalized.includes("min")) return "Minor";
+        if (normalized.includes("maj")) return "Major";
         return null;
     };
 
@@ -223,7 +225,7 @@ function extractFindings(plan: any): Finding[] {
         data.nonConformances.forEach((ncr: any, idx: number) => {
             if (ncr.statement && ncr.statement.trim() !== "") {
                 // Determine if Minor or Major if possible, default to Minor
-                const isMajor = ncr.id?.includes("Maj") || ncr.statement?.toLowerCase().includes("major");
+                const isMajor = ncr.id?.includes("Maj") || (ncr.statement && typeof ncr.statement === 'string' && ncr.statement.toLowerCase().includes("major"));
                 results.push({
                     id: `summary-ncr-${idx}`,
                     auditId: plan.id,
@@ -288,8 +290,19 @@ export default function AuditFindings() {
     const fetchFindings = async () => {
         setLoading(true);
         try {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const res = await fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`);
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                setLoading(false);
+                return;
+            }
+            const user = JSON.parse(userStr);
+            const userId = user.id || user._id;
+            if (!userId) {
+                setLoading(false);
+                return;
+            }
+
+            const res = await fetch(`${API_BASE_URL}/api/audit-plans?userId=${userId}`);
             const plans: any[] = await res.json();
             const all: Finding[] = [];
 
@@ -352,9 +365,10 @@ export default function AuditFindings() {
     const handleSaveFinding = async (updated: Finding) => {
         setIsSaving(true);
         try {
-            const resPlan = await fetch(`${API_BASE_URL}/api/audit-plans?id=${updated.auditId}`);
-            const plans = await resPlan.json();
-            const plan = plans.find((p: any) => p.id === updated.auditId);
+            // Fetch the specific plan to update its findingsData
+            const resPlan = await fetch(`${API_BASE_URL}/api/audit-plans/${updated.auditId}`);
+            if (!resPlan.ok) throw new Error("Plan not found");
+            const plan = await resPlan.json();
             if (!plan) throw new Error("Plan not found");
 
             const currentOverrides = plan.findingsData ? (typeof plan.findingsData === 'string' ? JSON.parse(plan.findingsData) : plan.findingsData) : {};
