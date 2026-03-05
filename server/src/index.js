@@ -444,7 +444,7 @@ const sendOtpLogic = async (req, res) => {
             to: email,
             subject: 'Your AuditMate Verification Code',
             text: `Your verification code is: ${otp}. This code will expire in 5 minutes.`
-        };  
+        };
 
         try {
             await transporter.sendMail(mailOptions);
@@ -989,10 +989,20 @@ app.get('/api/audit-plans', async (req, res) => {
                 const data = typeof plan.auditData === 'string' ? JSON.parse(plan.auditData) : plan.auditData;
                 progress = data.progress ?? 0;
             }
-            // Remove full auditData from the list response
-            const { auditData: _, ...planWithoutData } = plan;
+
+            const includeData = req.query.includeData === 'true';
+
+            // Remove full auditData from the list response UNLESS includeData=true is passed
+            if (!includeData) {
+                const { auditData: _, ...planWithoutData } = plan;
+                return {
+                    ...planWithoutData,
+                    progress
+                };
+            }
+
             return {
-                ...planWithoutData,
+                ...plan,
                 progress
             };
         });

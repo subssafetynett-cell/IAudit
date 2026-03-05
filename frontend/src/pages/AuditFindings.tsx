@@ -382,8 +382,8 @@ export default function AuditFindings() {
             // If superadmin, fetch all plans (omit userId)
             const isSuperAdmin = user.role === 'superadmin';
             const url = isSuperAdmin
-                ? `${API_BASE_URL}/api/audit-plans`
-                : `${API_BASE_URL}/api/audit-plans?userId=${user.id || user._id}`;
+                ? `${API_BASE_URL}/api/audit-plans?includeData=true`
+                : `${API_BASE_URL}/api/audit-plans?userId=${user.id || user._id}&includeData=true`;
 
             const res = await fetch(url);
             if (!res.ok) throw new Error("API call failed");
