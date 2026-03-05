@@ -2439,7 +2439,7 @@ const AuditExecute = () => {
                           {/* Fallback if no specific standard is mapped */}
                           {(!plan?.auditProgram?.isoStandard || (!clause.iso9001 && !clause.iso14001 && !clause.iso45001)) && (
                             <span className="text-lg leading-tight truncate">
-                              {clause.iso9001 || clause.iso14001 || clause.iso45001 || clause.name}
+                              {clause.iso9001 || clause.iso14001 || clause.iso45001}
                             </span>
                           )}
                         </div>
@@ -3511,9 +3511,15 @@ const AuditExecute = () => {
                     if (row.isHeading) {
                       return (
                         <TableRow key={row.id} className="bg-[#213847] hover:bg-[#213847] border-none">
-                          <TableCell className="font-bold text-white text-xs py-3 border-r border-slate-700">{row.iso45001}</TableCell>
-                          <TableCell className="font-bold text-white text-xs py-3 border-r border-slate-700">{row.iso14001}</TableCell>
-                          <TableCell className="font-bold text-white text-xs py-3 border-r border-slate-700">{row.iso9001}</TableCell>
+                          <TableCell className="font-bold text-white text-[10px] py-3 border-r border-slate-700">
+                            {row.iso45001} {row.iso45001 && !row.iso45001.includes('does not exist') && '(45001)'}
+                          </TableCell>
+                          <TableCell className="font-bold text-white text-[10px] py-3 border-r border-slate-700">
+                            {row.iso14001} {row.iso14001 && !row.iso14001.includes('does not exist') && '(14001)'}
+                          </TableCell>
+                          <TableCell className="font-bold text-white text-[10px] py-3 border-r border-slate-700">
+                            {row.iso9001} {row.iso9001 && !row.iso9001.includes('does not exist') && '(9001)'}
+                          </TableCell>
                           <TableCell colSpan={2} className="bg-[#213847]"></TableCell>
                         </TableRow>
                       );
@@ -3690,7 +3696,38 @@ const AuditExecute = () => {
                         <React.Fragment key={index}>
                           <TableRow className={`divide-x divide-slate-100 bg-white hover:bg-slate-50/50 transition-colors ${!isLastInGroup ? 'border-b-0' : ''}`}>
                             <TableCell className={`font-bold text-slate-600 align-top ${showClause ? 'bg-slate-50/30' : 'bg-transparent text-transparent select-none border-t-0'}`}>
-                              {showClause ? item.clause : ''}
+                              {showClause ? (
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-slate-900 border-b border-slate-200 pb-1 mb-1 block">Clause {item.clause}</span>
+                                  {(() => {
+                                    const match = CLAUSE_MATRIX.find(m => m.id === item.clause);
+                                    if (!match) return <span className="text-[10px] text-slate-400">Custom Clause</span>;
+
+                                    return (
+                                      <div className="flex flex-col gap-1">
+                                        {plan?.auditProgram?.isoStandard?.includes("9001") && match.iso9001 && !match.iso9001.includes('does not exist') && (
+                                          <div className="text-[10px] text-blue-600 font-bold leading-tight flex items-center gap-1">
+                                            <div className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></div>
+                                            {match.iso9001} (9001)
+                                          </div>
+                                        )}
+                                        {plan?.auditProgram?.isoStandard?.includes("14001") && match.iso14001 && !match.iso14001.includes('does not exist') && (
+                                          <div className="text-[10px] text-emerald-600 font-bold leading-tight flex items-center gap-1">
+                                            <div className="w-1 h-1 rounded-full bg-emerald-500 shrink-0"></div>
+                                            {match.iso14001} (14001)
+                                          </div>
+                                        )}
+                                        {plan?.auditProgram?.isoStandard?.includes("45001") && match.iso45001 && !match.iso45001.includes('does not exist') && (
+                                          <div className="text-[10px] text-orange-600 font-bold leading-tight flex items-center gap-1">
+                                            <div className="w-1 h-1 rounded-full bg-orange-500 shrink-0"></div>
+                                            {match.iso45001} (45001)
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              ) : ''}
                             </TableCell>
                             <TableCell className="align-top font-medium text-slate-800 py-4">
                               {item.question}
