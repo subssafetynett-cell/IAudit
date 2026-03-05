@@ -129,7 +129,8 @@ function extractFindings(plan: any): Finding[] {
         })();
 
         Object.entries(data.checklistData).forEach(([idx, entry]: any) => {
-            const ft = mapType(entry?.findings);
+            // Check both 'findings' and 'findingType' fields for reliability
+            const ft = mapType(entry?.findings) || mapType(entry?.findingType);
             if (ft) {
                 const itemIndex = Number(idx);
                 const templateItem = Array.isArray(templateContent) ? templateContent[itemIndex] : null;
@@ -140,13 +141,13 @@ function extractFindings(plan: any): Finding[] {
                         : `Item ${itemIndex + 1}`;
 
                 results.push({
-                    id: `checklist-${idx}`, // This ID is inside plan scope, merged later
+                    id: `checklist-${idx}`,
                     auditId: plan.id,
                     auditName,
                     clauseRef,
                     type: ft,
                     details: entry.evidence || "",
-                    description: entry.description || "",
+                    description: entry.description || templateItem?.question || "No description provided",
                     actionBy: entry.actionBy || "",
                     closeDate: entry.closeDate || "",
                     assignTo: entry.assignTo || "",
@@ -160,7 +161,7 @@ function extractFindings(plan: any): Finding[] {
         Object.entries(data.extraChecklistItems).forEach(([clause, items]: any) => {
             if (Array.isArray(items)) {
                 items.forEach((item: any, idx: number) => {
-                    const ft = mapType(item.findings);
+                    const ft = mapType(item.findings) || mapType(item.findingType);
                     if (ft) {
                         results.push({
                             id: `extra-${clause}-${idx}`,
@@ -169,7 +170,7 @@ function extractFindings(plan: any): Finding[] {
                             clauseRef: `Clause ${clause} (Custom)`,
                             type: ft,
                             details: item.evidence || "",
-                            description: item.description || "",
+                            description: item.description || item.question || "",
                             actionBy: item.actionBy || "",
                             closeDate: item.closeDate || "",
                             assignTo: item.assignTo || "",
@@ -183,7 +184,7 @@ function extractFindings(plan: any): Finding[] {
     // ── process-audit (AuditExecute – processAudits) ─────────────────────────
     if (data.processAudits && Array.isArray(data.processAudits)) {
         data.processAudits.forEach((audit: any, idx: number) => {
-            const ft = mapType(audit.findingType);
+            const ft = mapType(audit.findingType) || mapType(audit.findings) || mapType(audit.category);
             if (ft) {
                 results.push({
                     id: `process-${idx}`,
@@ -246,7 +247,7 @@ function extractFindings(plan: any): Finding[] {
     // ── auditFindings tab (Custom auditFindings list) ────────────────────────
     if (data.auditFindings && Array.isArray(data.auditFindings)) {
         data.auditFindings.forEach((finding: any, idx: number) => {
-            const ft = mapType(finding.category);
+            const ft = mapType(finding.category) || mapType(finding.findingType) || mapType(finding.findings);
             if (ft && finding.details && finding.details.trim() !== "") {
                 results.push({
                     id: `auditfindings-${idx}`,
@@ -262,6 +263,12 @@ function extractFindings(plan: any): Finding[] {
                 });
             }
         });
+    }
+
+    if (results.length > 0) {
+        console.log(`Successfully extracted ${results.length} findings for Plan #${plan.id}`);
+    } else {
+        console.log(`No findings extracted for Plan #${plan.id}. Raw data keys:`, Object.keys(data));
     }
 
     // Deduplicate and Prioritize Severity
