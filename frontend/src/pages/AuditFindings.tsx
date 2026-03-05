@@ -89,11 +89,11 @@ function extractFindings(plan: any): Finding[] {
     const mapType = (raw: string | undefined): FindingType | null => {
         if (!raw || typeof raw !== 'string') return null;
         const normalized = raw.trim().toLowerCase();
-        if (normalized === "c" || normalized === "compliant" || normalized === "") return null;
+        if (normalized === "c" || normalized === "compliant" || normalized === "compliance" || normalized === "") return null;
         if (normalized.includes("ofi") || normalized.includes("opportunity")) return "OFI";
         if (normalized === "min" || normalized.includes("minor")) return "Minor";
         if (normalized === "maj" || normalized.includes("major")) return "Major";
-        if (normalized === "nc" || normalized === "non-conformance" || normalized === "nonconformance") return "Minor";
+        if (normalized === "nc" || normalized.includes("non-conformance") || normalized.includes("nonconformance")) return "Minor";
         return null;
     };
 
@@ -318,35 +318,47 @@ export default function AuditFindings() {
                 return;
             }
             const user = JSON.parse(userStr);
-            const userId = user.id || user._id;
-            if (!userId) {
-                setLoading(false);
-                return;
-            }
+            console.log("Fetching findings for user:", user.email, "UID:", user.id || user._id);
 
-            const res = await fetch(`${API_BASE_URL}/api/audit-plans?userId=${userId}`);
+            // If superadmin, fetch all plans (omit userId)
+            const isSuperAdmin = user.role === 'superadmin';
+            const url = isSuperAdmin
+                ? `${API_BASE_URL}/api/audit-plans`
+                : `${API_BASE_URL}/api/audit-plans?userId=${user.id || user._id}`;
+
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("API call failed");
+
             const plans: any[] = await res.json();
+            console.log("Retrieved plans count:", plans.length);
+
             const all: Finding[] = [];
 
-            plans.forEach((plan) => {
-                const baseFindings = extractFindings(plan);
-                const overrides = plan.findingsData ? (typeof plan.findingsData === 'string' ? JSON.parse(plan.findingsData) : plan.findingsData) : {};
-
-                const merged = baseFindings.map(f => {
-                    if (overrides[f.id]) {
-                        return {
-                            ...f,
-                            ...overrides[f.id],
-                            isOverridden: true
-                        };
+            if (Array.isArray(plans)) {
+                plans.forEach((plan) => {
+                    const baseFindings = extractFindings(plan);
+                    if (baseFindings.length > 0) {
+                        console.log(`Extracted ${baseFindings.length} findings from Plan #${plan.id} (${plan.auditName})`);
                     }
-                    return f;
-                });
+                    const overrides = plan.findingsData ? (typeof plan.findingsData === 'string' ? JSON.parse(plan.findingsData) : plan.findingsData) : {};
 
-                all.push(...merged);
-            });
-            setFindings(all);
-        } catch {
+                    const merged = baseFindings.map(f => {
+                        if (overrides[f.id]) {
+                            return {
+                                ...f,
+                                ...overrides[f.id],
+                                isOverridden: true
+                            };
+                        }
+                        return f;
+                    });
+
+                    all.push(...merged);
+                });
+                setFindings(all);
+            }
+        } catch (error) {
+            console.error("Fetch findings error:", error);
             setFindings([]);
         } finally {
             setLoading(false);
