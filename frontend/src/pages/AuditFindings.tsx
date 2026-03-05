@@ -86,19 +86,25 @@ function extractFindings(plan: any): Finding[] {
 
     const auditName: string = plan.auditName || `Audit #${plan.id}`;
 
+    const mapType = (raw: string | undefined): FindingType | null => {
+        if (!raw || raw === "C" || raw.trim() === "") return null;
+        if (raw === "OFI") return "OFI";
+        if (raw === "Min" || raw === "Minor") return "Minor";
+        if (raw === "Maj" || raw === "Major") return "Major";
+        return null;
+    };
+
     // ── clause-checklist (AuditExecute – clauseData) ──────────────────────────
     if (data.clauseData && typeof data.clauseData === "object") {
         Object.entries(data.clauseData).forEach(([clauseId, entry]: any) => {
-            const ft: string | undefined = entry?.findingType;
-            if (!ft || ft === "C") return;
-
-            if (ft === "OFI" || ft === "Minor" || ft === "Major") {
+            const ft = mapType(entry?.findingType);
+            if (ft) {
                 results.push({
                     id: `clause-${clauseId}`,
                     auditId: plan.id,
                     auditName,
                     clauseRef: `Clause ${clauseId}`,
-                    type: ft as FindingType,
+                    type: ft,
                     details: entry.findingDetails || "",
                     description: entry.description || "",
                     actionBy: entry.actionBy || "",
@@ -115,22 +121,15 @@ function extractFindings(plan: any): Finding[] {
             const tmplId = plan.templateId;
             if (!tmplId) return null;
             const tmpl = auditTemplates.find((t) => t.id === tmplId);
-            if (!tmpl || tmpl.type !== "checklist") return null;
+            if (!tmpl) return null;
             return tmpl.content as ChecklistContent[];
         })();
 
         Object.entries(data.checklistData).forEach(([idx, entry]: any) => {
-            const raw: string | undefined = entry?.findings;
-            if (!raw || raw === "C" || raw.trim() === "") return;
-
-            let type: FindingType | null = null;
-            if (raw === "OFI") type = "OFI";
-            else if (raw === "Min" || raw === "Minor") type = "Minor";
-            else if (raw === "Maj" || raw === "Major") type = "Major";
-
-            if (type) {
+            const ft = mapType(entry?.findings);
+            if (ft) {
                 const itemIndex = Number(idx);
-                const templateItem = templateContent?.[itemIndex];
+                const templateItem = Array.isArray(templateContent) ? templateContent[itemIndex] : null;
                 const clauseRef = entry.clause
                     ? `Clause ${entry.clause}`
                     : templateItem?.clause
@@ -138,11 +137,11 @@ function extractFindings(plan: any): Finding[] {
                         : `Item ${itemIndex + 1}`;
 
                 results.push({
-                    id: `checklist-${idx}`,
+                    id: `checklist-${idx}`, // This ID is inside plan scope, merged later
                     auditId: plan.id,
                     auditName,
                     clauseRef,
-                    type,
+                    type: ft,
                     details: entry.evidence || "",
                     description: entry.description || "",
                     actionBy: entry.actionBy || "",
@@ -153,19 +152,42 @@ function extractFindings(plan: any): Finding[] {
         });
     }
 
+    // ── extraChecklistItems (AuditExecute – extra-questions) ─────────────────
+    if (data.extraChecklistItems && typeof data.extraChecklistItems === "object") {
+        Object.entries(data.extraChecklistItems).forEach(([clause, items]: any) => {
+            if (Array.isArray(items)) {
+                items.forEach((item: any, idx: number) => {
+                    const ft = mapType(item.findings);
+                    if (ft) {
+                        results.push({
+                            id: `extra-${clause}-${idx}`,
+                            auditId: plan.id,
+                            auditName,
+                            clauseRef: `Clause ${clause} (Custom)`,
+                            type: ft,
+                            details: item.evidence || "",
+                            description: item.description || "",
+                            actionBy: item.actionBy || "",
+                            closeDate: item.closeDate || "",
+                            assignTo: item.assignTo || "",
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     // ── process-audit (AuditExecute – processAudits) ─────────────────────────
     if (data.processAudits && Array.isArray(data.processAudits)) {
         data.processAudits.forEach((audit: any, idx: number) => {
-            const ft = audit.findingType;
-            if (!ft || ft === "C") return;
-
-            if (ft === "OFI" || ft === "Minor" || ft === "Major") {
+            const ft = mapType(audit.findingType);
+            if (ft) {
                 results.push({
                     id: `process-${idx}`,
                     auditId: plan.id,
                     auditName,
-                    clauseRef: `Process #${idx + 1}`,
-                    type: ft as FindingType,
+                    clauseRef: audit.refNo || `Process #${idx + 1}`,
+                    type: ft,
                     details: audit.evidence || "",
                     description: audit.description || "",
                     actionBy: audit.actionBy || "",
@@ -176,11 +198,12 @@ function extractFindings(plan: any): Finding[] {
         });
     }
 
-    // Deduplicate
+    // Deduplicate and Prioritize Severity
     const SEVERITY: Record<FindingType, number> = { OFI: 1, Minor: 2, Major: 3 };
     const seen = new Map<string, Finding>();
     results.forEach((f) => {
-        const key = `${f.auditId}::${f.clauseRef}`;
+        // Use a unique key that differentiates findings within the same audit
+        const key = `${f.auditId}::${f.id}::${f.clauseRef}`;
         const existing = seen.get(key);
         if (!existing || SEVERITY[f.type] > SEVERITY[existing.type]) {
             seen.set(key, f);
