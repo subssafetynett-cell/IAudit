@@ -114,18 +114,35 @@ function extractFindings(plan: any): Finding[] {
         return mapType(obj.findings) || mapType(obj.findingType) || mapType(obj.category) || mapType(obj.type);
     };
 
-    // ── clause-checklist (AuditExecute – clauseData) ──────────────────────────
-    if (data.clauseData && typeof data.clauseData === "object") {
-        Object.entries(data.clauseData).forEach(([clauseId, entry]: any) => {
+    // Helper to safely parse nested JSON strings
+    const safeParse = (input: any) => {
+        if (typeof input === 'string') {
+            try { return JSON.parse(input); } catch (e) { return input; }
+        }
+        return input;
+    };
+
+    // ── clause-checklist (Integrated Checklist – clauseData) ──────────────────
+    let clauseData = safeParse(data.clauseData);
+    if (clauseData && typeof clauseData === "object") {
+        const entries = Object.entries(clauseData);
+        console.log(`Plan #${plan.id}: Checking clauseData (${entries.length} entries)`);
+        entries.forEach(([clauseId, entry]: any) => {
             const ft = getFT(entry);
             if (ft) {
                 results.push({
-                    id: `clause-${clauseId}`,
+                    id: `clause-${plan.id}-${clauseId}`,
                     auditId: plan.id,
                     auditName,
                     clauseRef: `Clause ${clauseId}`,
                     type: ft,
-                    details: entry.findingDetails || entry.evidence || "",
+                    details: [
+                        entry.evidence,
+                        entry.findingDetails,
+                        entry.correction ? `Correction: ${entry.correction}` : null,
+                        entry.rootCause ? `Root Cause: ${entry.rootCause}` : null,
+                        entry.correctiveAction ? `Action: ${entry.correctiveAction}` : null
+                    ].filter(Boolean).join("\n") || "",
                     description: entry.description || entry.descriptionText || "",
                     actionBy: entry.actionBy || "",
                     closeDate: entry.closeDate || "",
@@ -135,8 +152,11 @@ function extractFindings(plan: any): Finding[] {
         });
     }
 
-    // ── checklist table (ExecuteAuditTemplate – checklistData) ────────────────
-    if (data.checklistData && typeof data.checklistData === "object") {
+    // ── checklist table (Standard Checklist – checklistData) ──────────────────
+    let checklistData = safeParse(data.checklistData);
+    if (checklistData && typeof checklistData === "object") {
+        const entries = Object.entries(checklistData);
+        console.log(`Plan #${plan.id}: Checking checklistData (${entries.length} entries)`);
         const templateContent = (() => {
             const tmplId = plan.templateId;
             if (!tmplId) return null;
@@ -145,7 +165,7 @@ function extractFindings(plan: any): Finding[] {
             return tmpl.content as ChecklistContent[];
         })();
 
-        Object.entries(data.checklistData).forEach(([idx, entry]: any) => {
+        entries.forEach(([idx, entry]: any) => {
             const ft = getFT(entry);
             if (ft) {
                 const itemIndex = Number(idx);
@@ -157,12 +177,18 @@ function extractFindings(plan: any): Finding[] {
                         : `Item ${itemIndex + 1}`;
 
                 results.push({
-                    id: `checklist-${idx}`,
+                    id: `checklist-${plan.id}-${idx}`,
                     auditId: plan.id,
                     auditName,
                     clauseRef,
                     type: ft,
-                    details: entry.evidence || entry.findingDetails || "",
+                    details: [
+                        entry.evidence,
+                        entry.findingDetails,
+                        entry.correction ? `Correction: ${entry.correction}` : null,
+                        entry.rootCause ? `Root Cause: ${entry.rootCause}` : null,
+                        entry.correctiveAction ? `Action: ${entry.correctiveAction}` : null
+                    ].filter(Boolean).join("\n") || "",
                     description: entry.description || templateItem?.question || "No description provided",
                     actionBy: entry.actionBy || "",
                     closeDate: entry.closeDate || "",
@@ -172,15 +198,17 @@ function extractFindings(plan: any): Finding[] {
         });
     }
 
-    // ── extraChecklistItems (AuditExecute – extra-questions) ─────────────────
-    if (data.extraChecklistItems && typeof data.extraChecklistItems === "object") {
-        Object.entries(data.extraChecklistItems).forEach(([clause, items]: any) => {
+    // ── extraChecklistItems ──────────────────────────────────────────────────
+    let extraItems = safeParse(data.extraChecklistItems);
+    if (extraItems && typeof extraItems === "object") {
+        console.log(`Plan #${plan.id}: Checking extraChecklistItems`);
+        Object.entries(extraItems).forEach(([clause, items]: any) => {
             if (Array.isArray(items)) {
                 items.forEach((item: any, idx: number) => {
                     const ft = getFT(item);
                     if (ft) {
                         results.push({
-                            id: `extra-${clause}-${idx}`,
+                            id: `extra-${plan.id}-${clause}-${idx}`,
                             auditId: plan.id,
                             auditName,
                             clauseRef: `Clause ${clause} (Custom)`,
@@ -197,18 +225,26 @@ function extractFindings(plan: any): Finding[] {
         });
     }
 
-    // ── process-audit (AuditExecute – processAudits) ─────────────────────────
-    if (data.processAudits && Array.isArray(data.processAudits)) {
-        data.processAudits.forEach((audit: any, idx: number) => {
+    // ── processAudits ────────────────────────────────────────────────────────
+    let processAudits = safeParse(data.processAudits);
+    if (processAudits && Array.isArray(processAudits)) {
+        console.log(`Plan #${plan.id}: Checking processAudits (${processAudits.length} items)`);
+        processAudits.forEach((audit: any, idx: number) => {
             const ft = getFT(audit);
             if (ft) {
                 results.push({
-                    id: `process-${idx}`,
+                    id: `process-${plan.id}-${idx}`,
                     auditId: plan.id,
                     auditName,
                     clauseRef: audit.refNo || audit.clauseNo || `Process #${idx + 1}`,
                     type: ft,
-                    details: audit.evidence || audit.conclusion || "",
+                    details: [
+                        audit.evidence,
+                        audit.conclusion,
+                        audit.correction ? `Correction: ${audit.correction}` : null,
+                        audit.rootCause ? `Root Cause: ${audit.rootCause}` : null,
+                        audit.correctiveAction ? `Action: ${audit.correctiveAction}` : null
+                    ].filter(Boolean).join("\n") || "",
                     description: audit.description || audit.processArea || "",
                     actionBy: audit.actionBy || "",
                     closeDate: audit.closeDate || "",
