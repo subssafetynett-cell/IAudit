@@ -99,6 +99,7 @@ const CreateAuditPlanPage = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [leadAuditorId, setLeadAuditorId] = useState<string>("");
     const [selectedAuditorId, setSelectedAuditorId] = useState<string>(""); // For single select in this UI version
+    const [isSaving, setIsSaving] = useState(false);
 
     // Itinerary State
     const [itinerary, setItinerary] = useState<ItineraryItem[]>([
@@ -292,6 +293,7 @@ const CreateAuditPlanPage = () => {
             return;
         }
 
+        setIsSaving(true);
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             const payload = {
@@ -323,14 +325,14 @@ const CreateAuditPlanPage = () => {
                 toast.success(isEditMode ? "Audit Plan updated successfully!" : "Audit Plan saved successfully!");
                 setTimeout(() => navigate("/audit"), 1000);
             } else {
-                toast.error(isEditMode ? "Failed to update audit plan." : "Failed to save audit plan.");
+                const data = await response.json().catch(() => ({}));
+                toast.error(data.details || data.error || (isEditMode ? "Failed to update audit plan." : "Failed to save audit plan."));
             }
         } catch (error) {
             console.error("Save audit plan error", error);
             toast.error("Failed to connect to the server.");
         } finally {
-            // Assuming setIsSaving is a state setter that needs to be defined elsewhere
-            // setIsSaving(false);
+            setIsSaving(false);
         }
     };
 
@@ -349,7 +351,7 @@ const CreateAuditPlanPage = () => {
                         <p className="text-slate-500 font-medium text-sm">Define the scope, criteria, and schedule for your upcoming audit.</p>
                     </div>
                 </div>
-                <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-100 rounded-xl gap-2">
+                <Button onClick={handleSave} disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-100 rounded-xl gap-2">
                     <Save className="w-4 h-4" />
                     {isEditMode ? "Update Audit Plan" : "Save Audit Plan"}
                 </Button>
@@ -657,53 +659,53 @@ const CreateAuditPlanPage = () => {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Selected Clauses Summary (Moved under Audit Team) */}
+                    {
+                        execution?.clauses && (
+                            <Card className="border-slate-200 shadow-sm rounded-2xl overflow-hidden mt-6">
+                                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-700">
+                                        <FileText className="w-4 h-4 text-emerald-500" />
+                                        Selected Audit Schedule
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 bg-slate-50/30">
+                                    <div className="grid gap-3 grid-cols-1">
+                                        {(() => {
+                                            const groups = new Map<string, any[]>();
+                                            execution.clauses.forEach((clause: any) => {
+                                                const lastDashIndex = clause.id.lastIndexOf('-');
+                                                const baseId = lastDashIndex !== -1 ? clause.id.substring(0, lastDashIndex) : clause.id;
+                                                if (!groups.has(baseId)) groups.set(baseId, []);
+                                                groups.get(baseId)!.push(clause);
+                                            });
+                                            return Array.from(groups.values()).map((group, idx) => (
+                                                <Card key={idx} className="border border-slate-200 shadow-sm bg-white overflow-hidden group hover:shadow-md transition-all">
+                                                    <div className="h-1 bg-emerald-500 w-0 group-hover:w-full transition-all duration-500" />
+                                                    <CardContent className="p-3">
+                                                        <div className="text-[12px] font-bold text-slate-800 leading-tight">
+                                                            {group.map((clause: any) => {
+                                                                const label = clause.standard || "";
+                                                                return (
+                                                                    <div key={clause.id} className="mb-2 pb-2 border-b border-slate-50 last:border-0 last:mb-0 last:pb-0 font-normal">
+                                                                        {label && <span className="text-[9px] uppercase font-black text-emerald-600 mr-2 bg-emerald-50 px-1 py-0.5 rounded">{label}</span>}
+                                                                        <span className="text-slate-700 font-semibold">{clause.name}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            ));
+                                        })()}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    }
                 </div>
             </div>
-
-            {/* Selected Clauses Summary (Full Width) */}
-            {
-                execution?.clauses && (
-                    <Card className="border-slate-200 shadow-sm rounded-2xl overflow-hidden mt-8">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                            <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-700">
-                                <FileText className="w-4 h-4 text-emerald-500" />
-                                Selected Audit Schedule
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-6 bg-slate-50/30">
-                            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
-                                {(() => {
-                                    const groups = new Map<string, any[]>();
-                                    execution.clauses.forEach((clause: any) => {
-                                        const lastDashIndex = clause.id.lastIndexOf('-');
-                                        const baseId = lastDashIndex !== -1 ? clause.id.substring(0, lastDashIndex) : clause.id;
-                                        if (!groups.has(baseId)) groups.set(baseId, []);
-                                        groups.get(baseId)!.push(clause);
-                                    });
-                                    return Array.from(groups.values()).map((group, idx) => (
-                                        <Card key={idx} className="border border-slate-200 shadow-sm bg-white overflow-hidden group hover:shadow-md transition-all">
-                                            <div className="h-1 bg-emerald-500 w-0 group-hover:w-full transition-all duration-500" />
-                                            <CardContent className="p-4">
-                                                <div className="text-[12px] font-bold text-slate-800 leading-tight">
-                                                    {group.map((clause: any) => {
-                                                        const label = clause.standard || "";
-                                                        return (
-                                                            <div key={clause.id} className="mb-2 pb-2 border-b border-slate-50 last:border-0 last:mb-0 last:pb-0">
-                                                                {label && <span className="text-[9px] uppercase font-black text-emerald-600 mr-2 bg-emerald-50 px-1 py-0.5 rounded">{label}</span>}
-                                                                <span className="text-slate-700 font-semibold">{clause.name}</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ));
-                                })()}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )
-            }
 
             {/* Template Preview Modal */}
             <Dialog open={!!previewTemplateId && !!previewTemplate} onOpenChange={() => setPreviewTemplateId(null)}>

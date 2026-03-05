@@ -1020,6 +1020,7 @@ app.post('/api/audit-plans', async (req, res) => {
     } = req.body;
 
     if (!auditProgramId) {
+        import('fs').then(fs => fs.appendFileSync('audit_debug.log', JSON.stringify({ error: "Missing auditProgramId", body: req.body }) + '\n'));
         return res.status(400).json({ error: 'Missing required field: auditProgramId' });
     }
 
@@ -1047,7 +1048,8 @@ app.post('/api/audit-plans', async (req, res) => {
         res.status(201).json(plan);
     } catch (error) {
         console.error('Error saving audit plan:', error);
-        res.status(500).json({ error: 'Failed to save audit plan' });
+        import('fs').then(fs => fs.appendFileSync('audit_debug.log', JSON.stringify({ error: error.message, stack: error.stack, body: req.body }) + '\n'));
+        res.status(500).json({ error: 'Failed to save audit plan', details: error.message });
     }
 });
 
