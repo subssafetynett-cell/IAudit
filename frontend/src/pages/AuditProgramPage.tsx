@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Document, Packer, Paragraph, TextRun, ImageRun } from "docx";
+import { Document, Packer, Paragraph, TextRun, ImageRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, WidthType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import logoImg from "@/assets/logo.png";
 import { auditTemplates } from "@/data/auditTemplates";
@@ -41,6 +41,7 @@ const AuditProgramPage = () => {
     const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
     const [auditPlans, setAuditPlans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false); // Added for download state
     const [viewMode, setViewMode] = useState<"card" | "list">("card");
     const [activeSiteId, setActiveSiteId] = useState<string>("");
     const navigate = useNavigate();
@@ -191,285 +192,285 @@ const AuditProgramPage = () => {
         }
     };
 
-    const handleDownloadPDF = async (plan: any, executionTitle: string, program?: any) => {
-        const doc = new jsPDF();
-
-        // Add Logo - compressed via canvas to prevent huge file sizes
+    const handleDownloadPDF = async (planStub: any, executionTitle: string, programStub?: any) => {
+        setDownloading(true);
         try {
-            const response = await fetch("/iAudit Global-01.png");
-            const blob = await response.blob();
-            const base64Compressed = await new Promise<string>((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    // Max 120x120px, 60% JPEG quality
-                    const MAX = 120;
-                    const canvas = document.createElement("canvas");
-                    let { width, height } = img;
-                    if (width > MAX || height > MAX) {
-                        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-                        else { width = Math.round(width * MAX / height); height = MAX; }
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL("image/jpeg", 0.6));
-                };
-                img.onerror = reject;
-                img.src = URL.createObjectURL(blob);
-            });
-            doc.addImage(base64Compressed, 'JPEG', 20, 10, 25, 25);
-        } catch (error) {
-            console.error("Failed to load logo for PDF", error);
-        }
+            const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planStub.id}`);
+            if (!res.ok) throw new Error("Failed to fetch full plan details");
+            const plan = await res.json();
 
-        // Header
-        doc.setFillColor(16, 185, 129); // Emerald 500
-        doc.rect(0, 40, 210, 15, "F"); // Moved down and reduced height
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.text("Audit Plan", 20, 50);
+            const doc = new jsPDF();
+            const template = (auditTemplates || []).find(t => t.id === plan.templateId);
+            const fileName = `Audit_Plan_${executionTitle.replace(/[^a-z0-9]/gi, '_')}`;
+            const MARGIN = 20;
+            const CONTENT_WIDTH = 210 - (2 * MARGIN);
 
-        // Meta Info
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(12);
-
-        const template = (auditTemplates || []).find(t => t.id === plan.templateId);
-
-        // ISO Standards - show ALL selected standards (stored as comma-separated string)
-        const standardsRaw: string = program?.isoStandard || plan.isoStandard || "";
-        const standards: string[] = standardsRaw ? standardsRaw.split(", ").map((s: string) => s.trim()).filter(Boolean) : [];
-        const standardsText = standards.length > 0 ? standards.join("  |  ") : "N/A";
-
-        doc.text(`Execution: ${executionTitle}`, 20, 70);
-        doc.text(`Audit Name: ${plan.auditName || plan.auditType || "N/A"}`, 20, 80);
-        doc.text(`Date: ${plan.date ? new Date(plan.date).toLocaleDateString() : "TBD"}`, 120, 70);
-        doc.text(`Location: ${plan.location || "N/A"}`, 120, 80);
-
-        if (template) {
-            doc.text(`Template: ${template.title}`, 20, 90);
-        }
-
-        // Render all selected ISO Standards
-        doc.setFontSize(11);
-        doc.setTextColor(16, 185, 129);
-        doc.text("ISO Standards:", 20, 100);
-        doc.setTextColor(60, 60, 60);
-        const splitStandards = doc.splitTextToSize(standardsText, 170);
-        doc.text(splitStandards, 20, 107);
-
-        const offsetAfterStandards = 107 + splitStandards.length * 6;
-
-        // Scope & Objective
-        doc.setFontSize(14);
-        doc.setTextColor(16, 185, 129);
-        doc.text("Scope & Objective", 20, offsetAfterStandards + 8);
-
-        doc.setTextColor(60, 60, 60);
-        doc.setFontSize(10);
-        const splitScope = doc.splitTextToSize(`Scope: ${plan.scope || "N/A"}`, 170);
-        doc.text(splitScope, 20, offsetAfterStandards + 18);
-
-        const splitObjective = doc.splitTextToSize(`Objective: ${plan.objective || "N/A"}`, 170);
-        doc.text(splitObjective, 20, offsetAfterStandards + 18 + (splitScope.length * 5) + 5);
-
-        // Scheduled Clauses
-        doc.setFontSize(14);
-        doc.setTextColor(16, 185, 129);
-        doc.text("Scheduled Clauses", 20, offsetAfterStandards + 18 + (splitScope.length * 5) + (splitObjective.length * 5) + 15);
-
-        doc.setFontSize(10);
-        doc.setTextColor(60, 60, 60);
-        let currentY = offsetAfterStandards + 18 + (splitScope.length * 5) + (splitObjective.length * 5) + 25;
-
-        const execClauses = getAuditExecutions(program).find(e => e.id === executionTitle)?.clauses || [];
-
-        execClauses.forEach((clause: any) => {
-            if (currentY > 270) {
-                doc.addPage();
-                currentY = 20;
+            // --- Logo - improved transparency handling ---
+            try {
+                const response = await fetch("/iAudit Global-01.png");
+                const blob = await response.blob();
+                const base64Compressed = await new Promise<string>((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const MAX = 120;
+                        const canvas = document.createElement("canvas");
+                        let { width, height } = img;
+                        if (width > MAX || height > MAX) {
+                            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                            else { width = Math.round(width * MAX / height); height = MAX; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext("2d")!;
+                        ctx.clearRect(0, 0, width, height);
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL("image/png"));
+                    };
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(blob);
+                });
+                doc.addImage(base64Compressed, 'PNG', MARGIN, 10, 25, 25, undefined, 'FAST');
+            } catch (e) {
+                console.warn("Logo could not be loaded for PDF", e);
             }
-            const clauseText = clause.standard ? `[${clause.standard}] ${clause.name}` : clause.name;
-            const splitClause = doc.splitTextToSize(`• ${clauseText}`, 170);
-            doc.text(splitClause, 20, currentY);
-            currentY += splitClause.length * 5 + 2;
-        });
 
-        // Itinerary Table
-        const startY = currentY + 10;
+            // --- Header banner ---
+            doc.setFillColor(33, 56, 71);
+            doc.rect(0, 40, 210, 15, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('AUDIT PLAN REPORT', MARGIN, 50);
+            doc.setFont('helvetica', 'normal');
 
-        doc.setFontSize(14);
-        doc.setTextColor(16, 185, 129);
-        doc.text("Audit Itinerary", 20, startY);
+            // --- Meta Info ---
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            let y = 65;
+            const addRow = (label: string, value: string) => {
+                doc.setFont('helvetica', 'bold');
+                doc.text(label + ':', MARGIN, y);
+                doc.setFont('helvetica', 'normal');
+                const splitVal = doc.splitTextToSize(value || 'N/A', CONTENT_WIDTH - 55);
+                doc.text(splitVal, MARGIN + 55, y);
+                y += (splitVal.length * 6);
+            };
 
-        const itineraryData = Array.isArray(plan.itinerary) ? plan.itinerary.map((item: any) => [
-            `${item.startTime} - ${item.endTime}`,
-            item.activity,
-            item.notes || "-"
-        ]) : [];
+            const addTwoLineField = (label: string, value: string) => {
+                doc.setFont('helvetica', 'bold');
+                doc.text(label + ':', MARGIN, y);
+                y += 6;
+                doc.setFont('helvetica', 'normal');
+                const lines = doc.splitTextToSize(value || 'N/A', CONTENT_WIDTH);
+                doc.text(lines, MARGIN, y);
+                y += (lines.length * 5) + 4;
+            };
 
-        autoTable(doc, {
-            startY: startY + 10,
-            head: [['Time', 'Activity', 'Objective']],
-            body: itineraryData,
-            headStyles: { fillColor: [16, 185, 129] },
-        });
+            const standardsRaw = programStub?.isoStandard || plan.isoStandard || "";
+            const standardsText = standardsRaw ? standardsRaw.split(", ").join("  |  ") : "N/A";
 
-        doc.save(`Audit_Plan_${executionTitle.replace(/[^a-z0-9]/gi, '_')}.pdf`);
-        toast.success("PDF Downloaded");
+            addRow('Execution', executionTitle);
+            addRow('Audit Name', plan.auditName || plan.auditType);
+            addRow('Template', template?.title || plan.templateId);
+            addRow('ISO Standards', standardsText);
+            addRow('Date', plan.date ? new Date(plan.date).toLocaleDateString() : 'TBD');
+            addRow('Location', plan.location);
+            addRow('Lead Auditor', plan.leadAuditor ? `${plan.leadAuditor.firstName} ${plan.leadAuditor.lastName}` : '-');
+            addRow('Criteria', plan.criteria);
+
+            y += 4;
+            addTwoLineField('Scope', plan.scope);
+            addTwoLineField('Objective', plan.objective);
+
+            y += 4;
+
+            // --- Itinerary ---
+            const itinerary = plan.itinerary ? (typeof plan.itinerary === 'string' ? JSON.parse(plan.itinerary) : plan.itinerary) : [];
+            if (Array.isArray(itinerary) && itinerary.length > 0) {
+                if (y > 250) { doc.addPage(); y = MARGIN; }
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(33, 56, 71);
+                doc.text('Audit Itinerary', MARGIN, y); y += 6;
+                autoTable(doc, {
+                    startY: y,
+                    head: [['Time', 'Activity', 'Auditee / Dept']],
+                    body: itinerary.map((item: any) => [`${item.startTime || ''} - ${item.endTime || ''}`, item.activity || '', item.notes || item.auditee || ' ']),
+                    headStyles: { fillColor: [33, 56, 71], fontSize: 9 },
+                    bodyStyles: { fontSize: 8 },
+                    margin: { left: MARGIN, right: MARGIN },
+                    theme: 'grid'
+                });
+                y = (doc as any).lastAutoTable.finalY + 10;
+            }
+
+            // --- Scheduled Clauses ---
+            const execClauses = getAuditExecutions(programStub || plan.auditProgram).find(e => e.id === executionTitle)?.clauses || [];
+            if (execClauses.length > 0) {
+                if (y > 250) { doc.addPage(); y = MARGIN; }
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(33, 56, 71);
+                doc.text('Scheduled Clauses', MARGIN, y); y += 6;
+                execClauses.forEach((clause: any) => {
+                    if (y > 280) { doc.addPage(); y = MARGIN; }
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+                    const clauseText = clause.standard ? `[${clause.standard}] ${clause.name}` : clause.name;
+                    const splitClause = doc.splitTextToSize(`• ${clauseText}`, CONTENT_WIDTH);
+                    doc.text(splitClause, MARGIN, y);
+                    y += splitClause.length * 5 + 2;
+                });
+            }
+
+            doc.save(`${fileName}.pdf`);
+            toast.success("PDF Downloaded");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to generate PDF");
+        } finally {
+            setDownloading(false);
+        }
     };
 
-    const handleDownloadDocx = async (plan: any, executionTitle: string, program?: any) => {
-        // Fetch logo image for Docx - compressed via canvas to prevent huge file sizes
-        let logoBuffer: ArrayBuffer | null = null;
+    const handleDownloadDocx = async (planStub: any, executionTitle: string, programStub?: any) => {
+        setDownloading(true);
         try {
-            const response = await fetch("/iAudit Global-01.png");
-            const blob = await response.blob();
-            logoBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    const MAX = 120;
-                    const canvas = document.createElement("canvas");
-                    let { width, height } = img;
-                    if (width > MAX || height > MAX) {
-                        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-                        else { width = Math.round(width * MAX / height); height = MAX; }
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-                    canvas.toBlob((compressedBlob) => {
-                        if (compressedBlob) compressedBlob.arrayBuffer().then(resolve).catch(reject);
-                        else reject(new Error("Canvas toBlob returned null"));
-                    }, "image/jpeg", 0.6);
-                };
-                img.onerror = reject;
-                img.src = URL.createObjectURL(blob);
+            const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planStub.id}`);
+            if (!res.ok) throw new Error("Failed to fetch full plan details");
+            const plan = await res.json();
+
+            const template = (auditTemplates || []).find(t => t.id === plan.templateId);
+            const fileName = `Audit_Plan_${executionTitle.replace(/[^a-z0-9]/gi, '_')}`;
+
+            // Fetch logo for DOCX
+            let logoBuffer: ArrayBuffer | null = null;
+            try {
+                const response = await fetch('/iAudit Global-01.png');
+                const blob = await response.blob();
+                logoBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const MAX = 120;
+                        const canvas = document.createElement("canvas");
+                        let { width, height } = img;
+                        if (width > MAX || height > MAX) {
+                            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                            else { width = Math.round(width * MAX / height); height = MAX; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext("2d")!;
+                        ctx.clearRect(0, 0, width, height);
+                        ctx.drawImage(img, 0, 0, width, height);
+                        canvas.toBlob((cb) => {
+                            if (cb) cb.arrayBuffer().then(resolve).catch(reject);
+                            else reject(new Error("Canvas toBlob failed"));
+                        }, "image/png");
+                    };
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(blob);
+                });
+            } catch (e) {
+                console.warn("Logo failed for DOCX", e);
+            }
+
+            const primaryColor = '213847';
+            const children: any[] = [];
+            const MARGIN_TWIPS = 1440; // 1 inch
+
+            if (logoBuffer) {
+                children.push(new Paragraph({
+                    children: [new ImageRun({ data: logoBuffer, transformation: { width: 80, height: 60 } })],
+                    spacing: { after: 200 }
+                }));
+            }
+
+            const heading = (text: string) => new Paragraph({
+                children: [new TextRun({ text, bold: true, size: 28, color: primaryColor })],
+                spacing: { before: 400, after: 200 }
             });
-        } catch (error) {
-            console.error("Failed to fetch logo for Word doc:", error);
-        }
 
-        const template = (auditTemplates || []).find(t => t.id === plan.templateId);
-        const children: any[] = [];
+            const kv = (label: string, value: string) => new Paragraph({
+                children: [new TextRun({ text: `${label}: `, bold: true }), new TextRun(value || 'N/A')],
+                spacing: { after: 120 }
+            });
 
-        // ISO Standards - show ALL selected standards (stored as comma-separated string)
-        const standardsRaw: string = program?.isoStandard || plan.isoStandard || "";
-        const standards: string[] = standardsRaw ? standardsRaw.split(", ").map((s: string) => s.trim()).filter(Boolean) : [];
-
-
-        // Add Logo if available
-        if (logoBuffer) {
-            children.push(new Paragraph({
-                children: [
-                    new ImageRun({
-                        data: logoBuffer,
-                        transformation: {
-                            width: 80,
-                            height: 80,
-                        },
-                    }),
-                ],
-                spacing: { after: 200 }
-            }));
-        }
-
-        children.push(
-            new Paragraph({
-                children: [
-                    new TextRun({
-                        text: "Audit Plan",
-                        bold: true,
-                        size: 48,
-                        color: "10B981"
-                    }),
-                ],
-                spacing: { after: 400 }
-            }),
-            new Paragraph({
-                children: [new TextRun({ text: `Execution: ${executionTitle}`, bold: true })]
-            }),
-            new Paragraph({
-                children: [new TextRun({ text: `Audit Name: ${plan.auditName || plan.auditType || "N/A"}` })]
-            })
-        );
-
-        if (template) {
-            children.push(
+            const kvTwoLine = (label: string, value: string) => [
                 new Paragraph({
-                    children: [new TextRun({ text: `Template: ${template.title}` })]
-                })
-            );
-        }
-
-        // Add all selected ISO Standards as separate lines
-        if (standards.length > 0) {
-            children.push(
-                new Paragraph({
-                    children: [new TextRun({ text: "ISO Standards:", bold: true, color: "10B981" })],
+                    children: [new TextRun({ text: `${label}:`, bold: true })],
                     spacing: { before: 200 }
                 }),
-                ...standards.map(std => new Paragraph({
-                    children: [new TextRun({ text: `• ${std}` })],
-                }))
+                new Paragraph({
+                    children: [new TextRun(value || 'N/A')],
+                    spacing: { after: 200 }
+                })
+            ];
+
+            children.push(
+                new Paragraph({
+                    children: [new TextRun({ text: 'AUDIT PLAN REPORT', bold: true, size: 40, color: primaryColor })],
+                    spacing: { after: 400 }
+                }),
+                kv('Execution', executionTitle),
+                kv('Audit Name', plan.auditName || plan.auditType),
+                kv('Date', plan.date ? new Date(plan.date).toLocaleDateString() : 'TBD'),
+                kv('Location', plan.location),
+                kv('Lead Auditor', plan.leadAuditor ? `${plan.leadAuditor.firstName} ${plan.leadAuditor.lastName}` : '-'),
+                ...kvTwoLine('Scope', plan.scope),
+                ...kvTwoLine('Objective', plan.objective),
+                kv('Criteria', plan.criteria),
             );
-        }
 
-        children.push(
-            new Paragraph({
-                children: [new TextRun({ text: `Date: ${plan.date ? new Date(plan.date).toLocaleDateString() : "TBD"}` })]
-            }),
-            new Paragraph({
-                children: [new TextRun({ text: `Location: ${plan.location || "N/A"}` })],
-                spacing: { after: 200 }
-            }),
-            new Paragraph({
-                children: [new TextRun({ text: "Scope:", bold: true, color: "10B981" })]
-            }),
-            new Paragraph({
-                children: [new TextRun(plan.scope || "N/A")],
-                spacing: { after: 200 }
-            }),
-            new Paragraph({
-                children: [new TextRun({ text: "Objective:", bold: true, color: "10B981" })]
-            }),
-            new Paragraph({
-                children: [new TextRun(plan.objective || "N/A")],
-                spacing: { after: 400 }
-            }),
-            new Paragraph({
-                children: [new TextRun({ text: "Scheduled Clauses", bold: true, size: 32, color: "10B981" })],
-                spacing: { after: 200 }
-            }),
-            ...(getAuditExecutions(program).find(e => e.id === executionTitle)?.clauses || []).map((clause: any) => new Paragraph({
-                children: [
-                    new TextRun({ text: clause.standard ? `[${clause.standard}] ` : "", bold: true, color: "10B981" }),
-                    new TextRun({ text: clause.name })
-                ],
-                bullet: { level: 0 }
-            })),
-            new Paragraph({
-                children: [new TextRun({ text: "Itinerary", bold: true, size: 32, color: "10B981" })],
-                spacing: { before: 400, after: 200 }
-            }),
-            ...((plan.itinerary as any[]) || []).map(item => new Paragraph({
-                children: [new TextRun({
-                    text: `${item.startTime} - ${item.endTime}: ${item.activity} (${item.notes || ""})`
-                })],
-                bullet: { level: 0 }
-            }))
-        );
+            // Itinerary
+            const itinerary = plan.itinerary ? (typeof plan.itinerary === 'string' ? JSON.parse(plan.itinerary) : plan.itinerary) : [];
+            if (Array.isArray(itinerary) && itinerary.length > 0) {
+                children.push(heading('Audit Itinerary'));
+                children.push(new DocxTable({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: [
+                        new DocxTableRow({
+                            children: ['Time', 'Activity', 'Auditee / Dept'].map(h => new DocxTableCell({
+                                children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'ffffff' })] })],
+                                shading: { fill: primaryColor }
+                            }))
+                        }),
+                        ...itinerary.map((item: any) => new DocxTableRow({
+                            children: [`${item.startTime || ''} - ${item.endTime || ''}`, item.activity || '', item.notes || item.auditee || ''].map(v => new DocxTableCell({
+                                children: [new Paragraph(v)]
+                            }))
+                        }))
+                    ],
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 1 },
+                        bottom: { style: BorderStyle.SINGLE, size: 1 },
+                        left: { style: BorderStyle.SINGLE, size: 1 },
+                        right: { style: BorderStyle.SINGLE, size: 1 },
+                        insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
+                        insideVertical: { style: BorderStyle.SINGLE, size: 1 },
+                    }
+                }));
+            }
 
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: children
-            }]
-        });
-
-        Packer.toBlob(doc).then(blob => {
-            saveAs(blob, `Audit_Plan_${executionTitle.replace(/[^a-z0-9]/gi, '_')}.docx`);
+            const doc = new Document({
+                sections: [{
+                    properties: {
+                        page: {
+                            margin: {
+                                top: MARGIN_TWIPS,
+                                right: MARGIN_TWIPS,
+                                bottom: MARGIN_TWIPS,
+                                left: MARGIN_TWIPS,
+                            },
+                        },
+                    },
+                    children
+                }]
+            });
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `${fileName}.docx`);
             toast.success("Word Document Downloaded");
-        });
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to generate Word document");
+        } finally {
+            setDownloading(false);
+        }
     };
 
     if (loading) return (

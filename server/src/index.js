@@ -1249,6 +1249,67 @@ app.post('/api/send-assessment-report', async (req, res) => {
     }
 });
 
+// Feedback API
+app.post('/api/feedback', async (req, res) => {
+    const { name, email, feedback, image } = req.body;
+
+    if (!name || !email || !feedback) {
+        return res.status(400).json({ error: 'Name, email, and feedback are required' });
+    }
+
+    try {
+        const mailOptions = {
+            from: 'subs.safetynett@gmail.com',
+            to: 'Mathew@iaudit.global',
+            cc: 'jasmin@iaudit.global',
+            subject: `[Feedback] From ${name}`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #213847; padding: 20px; text-align: center;">
+                        <h2 style="color: #ffffff; margin: 0;">New User Feedback</h2>
+                    </div>
+                    <div style="padding: 24px;">
+                        <p style="margin-bottom: 20px; font-size: 16px; color: #475569;">You have received a new feedback submission from a user.</p>
+                        
+                        <div style="background: #f8fafc; padding: 16px; border-radius: 6px; margin-bottom: 20px;">
+                            <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; text-transform: uppercase;">Name</p>
+                            <p style="margin: 0 0 16px; font-weight: 600; color: #1e293b;">${name}</p>
+                            
+                            <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; text-transform: uppercase;">Email</p>
+                            <p style="margin: 0 0 16px; font-weight: 600; color: #1e293b;">${email}</p>
+                            
+                            <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; text-transform: uppercase;">Feedback</p>
+                            <p style="margin: 0; color: #334155; line-height: 1.6;">${feedback}</p>
+                        </div>
+                        
+                        ${image ? '<p style="color: #64748b; font-size: 13px;"><em>An image attachment is included below.</em></p>' : ''}
+                    </div>
+                    <div style="background: #f1f5f9; padding: 12px; text-align: center; font-size: 12px; color: #94a3b8;">
+                        This email was sent automatically from iAudit Global Feedback system.
+                    </div>
+                </div>
+            `
+        };
+
+        if (image) {
+            const base64Data = image.split(';base64,').pop();
+            const extension = image.split(';')[0].split('/')[1] || 'png';
+
+            mailOptions.attachments = [{
+                filename: `feedback_image.${extension}`,
+                content: base64Data,
+                encoding: 'base64'
+            }];
+        }
+
+        await transporter.sendMail(mailOptions);
+        console.log(`Feedback email sent from ${email}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error sending feedback email:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+});
 
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);

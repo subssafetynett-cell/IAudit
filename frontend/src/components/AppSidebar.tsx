@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, FileText, ClipboardCheck, BookOpen, FileCheck, BarChart3, CreditCard, ChevronRight, Users, ClipboardList, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Building2, LayoutDashboard, FileText, ClipboardCheck, BookOpen, FileCheck, BarChart3, CreditCard, ChevronRight, Users, ClipboardList, AlertTriangle, ShieldCheck, MessageSquare } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ const managementNav = [
 ];
 
 const billingNav = [
+  { title: "Feedback", url: "/feedback", icon: MessageSquare },
   { title: "Subscription", url: "/subscription", icon: CreditCard },
 ];
 

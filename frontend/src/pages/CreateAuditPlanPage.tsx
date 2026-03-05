@@ -152,32 +152,62 @@ const CreateAuditPlanPage = () => {
 
     // Pre-populate data
     useEffect(() => {
-        if (!isEditMode && !execution && !plan) return; // Skip if meaningfully missing state
+        if (!isEditMode && !execution && !plan) return;
+
+        const loadFullPlan = async (planId: number) => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planId}`);
+                if (res.ok) {
+                    const fullPlan = await res.json();
+                    setAuditName(fullPlan.auditName || "");
+                    setSelectedTemplateId(fullPlan.templateId || "");
+                    if (fullPlan.date) setAuditDate(new Date(fullPlan.date));
+                    setAuditLocation(fullPlan.location || "");
+                    setAuditScope(fullPlan.scope || "");
+                    setAuditObjective(fullPlan.objective || "");
+                    setAuditCriteria(fullPlan.criteria || "");
+
+                    if (fullPlan.leadAuditorId) setLeadAuditorId(fullPlan.leadAuditorId.toString());
+                    if (fullPlan.auditors && fullPlan.auditors.length > 0) {
+                        setSelectedAuditorId(fullPlan.auditors[0].id.toString());
+                    }
+                    if (fullPlan.itinerary) {
+                        setItinerary(typeof fullPlan.itinerary === 'string' ? JSON.parse(fullPlan.itinerary) : fullPlan.itinerary);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load full plan details", e);
+            }
+        };
 
         const existingPlan = location.state?.plan;
 
         if (existingPlan) {
-            // Edit Mode
-            setAuditName(existingPlan.auditName || "");
-            setSelectedTemplateId(existingPlan.templateId || "");
-            if (existingPlan.date) setAuditDate(new Date(existingPlan.date));
-            setAuditLocation(existingPlan.location || "");
-            setAuditScope(existingPlan.scope || "");
-            setAuditObjective(existingPlan.objective || "");
-            setAuditCriteria(existingPlan.criteria || "");
+            // Edit Mode - If scope/objective are missing, fetch fresh from backend
+            if (!existingPlan.scope || !existingPlan.objective || !existingPlan.itinerary) {
+                loadFullPlan(existingPlan.id);
+            } else {
+                setAuditName(existingPlan.auditName || "");
+                setSelectedTemplateId(existingPlan.templateId || "");
+                if (existingPlan.date) setAuditDate(new Date(existingPlan.date));
+                setAuditLocation(existingPlan.location || "");
+                setAuditScope(existingPlan.scope || "");
+                setAuditObjective(existingPlan.objective || "");
+                setAuditCriteria(existingPlan.criteria || "");
 
-            if (existingPlan.leadAuditorId) setLeadAuditorId(existingPlan.leadAuditorId.toString());
-            else if (existingPlan.leadAuditor?.id) setLeadAuditorId(existingPlan.leadAuditor.id.toString());
+                if (existingPlan.leadAuditorId) setLeadAuditorId(existingPlan.leadAuditorId.toString());
+                else if (existingPlan.leadAuditor?.id) setLeadAuditorId(existingPlan.leadAuditor.id.toString());
 
-            if (existingPlan.auditors && existingPlan.auditors.length > 0) {
-                const firstAuditor = existingPlan.auditors[0];
-                setSelectedAuditorId(typeof firstAuditor === 'object' ? firstAuditor.id?.toString() : firstAuditor.toString());
-            } else if (existingPlan.auditorIds && existingPlan.auditorIds.length > 0) {
-                setSelectedAuditorId(existingPlan.auditorIds[0].toString());
-            }
+                if (existingPlan.auditors && existingPlan.auditors.length > 0) {
+                    const firstAuditor = existingPlan.auditors[0];
+                    setSelectedAuditorId(typeof firstAuditor === 'object' ? firstAuditor.id?.toString() : firstAuditor.toString());
+                } else if (existingPlan.auditorIds && existingPlan.auditorIds.length > 0) {
+                    setSelectedAuditorId(existingPlan.auditorIds[0].toString());
+                }
 
-            if (existingPlan.itinerary) {
-                setItinerary(typeof existingPlan.itinerary === 'string' ? JSON.parse(existingPlan.itinerary) : existingPlan.itinerary);
+                if (existingPlan.itinerary) {
+                    setItinerary(typeof existingPlan.itinerary === 'string' ? JSON.parse(existingPlan.itinerary) : existingPlan.itinerary);
+                }
             }
         } else if (execution) {
             // Create Mode Defaults

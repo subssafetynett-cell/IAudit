@@ -20,6 +20,7 @@ import AuditTemplates from "./pages/AuditTemplates";
 import ExecuteAuditTemplate from "./pages/ExecuteAuditTemplate";
 import AuditExecute from "./pages/AuditExecute";
 import AuditFindings from "./pages/AuditFindings";
+import Feedback from "./pages/Feedback";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Auth from "./pages/Auth";
@@ -62,6 +63,7 @@ const App = () => (
                     <Route path="/audit-templates/:id/execute" element={<ExecuteAuditTemplate />} />
                     <Route path="/audit/execute/:id" element={<AuditExecute />} />
                     <Route path="/audit-findings" element={<AuditFindings />} />
+                    <Route path="/feedback" element={<Feedback />} />
                     <Route path="/profile-settings" element={<ProfileSettings />} />
                     <Route path="/account-settings" element={<AccountSettings />} />
                     <Route path="/super-admin" element={<SuperAdmin />} />
