@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { API_BASE_URL } from "@/config";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, Plus, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, ClipboardList, RotateCcw, Award, Search } from "lucide-react";
+import { Trash2, Plus, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, ClipboardList, RotateCcw, Award, Search, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -286,7 +287,10 @@ const ISO_45001_QUESTIONS: Question[] = [
 ];
 
 const SelfAssessment = () => {
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [step, setStep] = useState<"list" | "setup" | "assessment" | "email-collection" | "result">("list");
+    const [showOnboardingGuide, setShowOnboardingGuide] = useState(searchParams.get("onboarding") === "true");
     const [standard, setStandard] = useState<Standard | "">("");
     const [companyName, setCompanyName] = useState(""); // Auditor's Company
     const [auditorName, setAuditorName] = useState("");
@@ -1444,21 +1448,91 @@ const SelfAssessment = () => {
     }, [searchQuery, standardFilter]);
 
     return (
-        <div className="flex-1 p-8 pt-6 min-h-screen bg-white">
-            <div className="w-full max-w-[1800px] mx-auto space-y-8">
+        <div className="flex-1 p-8 pt-6 min-h-screen bg-white relative">
+            {/* Background Overlay for Onboarding */}
+            {showOnboardingGuide && step === "list" && (
+                <div className="fixed inset-0 bg-slate-900/10 z-[40] transition-all duration-500" />
+            )}
 
+            <div className="w-full max-w-[1800px] mx-auto space-y-8">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 px-4 sm:px-0">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Self Assessment</h1>
                         <p className="text-sm text-muted-foreground mt-0.5">Evaluate your organization's compliance with ISO standards</p>
                     </div>
+
                     {/* Header Actions - New Assessment Button */}
                     {step === "list" && (
-                        <Button onClick={() => setStep("setup")} size="sm" className="gap-1.5 shadow-sm bg-[#213847] hover:bg-[#213847]/90 text-white rounded-xl px-5 h-11">
-                            <Plus className="h-4 w-4" /> New Assessment
-                        </Button>
+                        <div className={`relative ${showOnboardingGuide ? "z-[60]" : ""}`}>
+                            {showOnboardingGuide && (
+                                <div className="absolute inset-0 -m-1 rounded-2xl ring-[8px] ring-emerald-500/50 animate-pulse z-[-1]" />
+                            )}
+                            <Button 
+                                onClick={() => {
+                                    setStep("setup");
+                                    setShowOnboardingGuide(false);
+                                }} 
+                                size="sm" 
+                                className={`gap-1.5 shadow-sm bg-[#213847] hover:bg-[#213847]/90 text-white rounded-xl px-5 h-11 transition-all ${showOnboardingGuide ? 'relative z-[60] ring-[6px] ring-emerald-500 ring-offset-2 scale-105 shadow-2xl' : ''}`}
+                            >
+                                <Plus className="h-4 w-4" /> New Assessment
+                            </Button>
+
+                            {/* Onboarding Guide Tooltip */}
+                            {showOnboardingGuide && (
+                                <>
+                                    <div className="fixed inset-0 bg-slate-900/30 z-[50] animate-in fade-in duration-700" />
+                                    <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:translate-y-0 md:absolute md:inset-auto md:top-full md:mt-4 md:right-0 z-[60] animate-in fade-in slide-in-from-top-4 duration-500">
+                                        <div className="bg-white border-0 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-5 md:p-6 w-full max-w-[720px] mx-auto md:mr-0 relative overflow-hidden group/modal">
+                                            <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
+                                            
+                                            <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                                                        <ClipboardCheck className="w-6 h-6 text-emerald-600" />
+                                                    </div>
+                                                    <h4 className="font-black text-xl text-slate-900 tracking-tight whitespace-nowrap">Step 4: Self Assessment</h4>
+                                                </div>
+
+                                            <div className="space-y-4">
+                                                <p className="text-sm font-medium text-slate-600 leading-relaxed px-1">
+                                                    Self Assessment was created for companies that are new to ISO Standards and not certified. If you are already ISO certified use of the Self Assessment tool is optional and can be skipped.
+                                                </p>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Button 
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl px-4 flex items-center gap-2 font-bold transition-colors"
+                                                    onClick={() => {
+                                                        setShowOnboardingGuide(false);
+                                                        navigate("/users?onboarding=true");
+                                                    }}
+                                                >
+                                                    <ArrowLeft className="w-4 h-4" /> Back
+                                                </Button>
+                                                <Button 
+                                                    size="sm"
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95 py-6 text-base"
+                                                    onClick={() => {
+                                                        setShowOnboardingGuide(false);
+                                                        // Transition to Step 5: Gap Analysis
+                                                        navigate("/gap-analysis?onboarding=true");
+                                                    }}
+                                                >
+                                                    Next <ArrowRight className="ml-2 w-5 h-5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        </div>
                     )}
+
                     {step === "assessment" && (
                         <div className="flex items-center gap-4">
                             <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm flex flex-col items-end">

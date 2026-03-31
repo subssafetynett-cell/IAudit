@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,9 @@ import {
     ArrowUpRight,
     UserCheck,
     UserMinus,
-    AlertTriangle
+    AlertTriangle,
+    ArrowRight,
+    Users as UsersIcon
 } from "lucide-react";
 import UserModal from "@/components/UserModal";
 import ReusablePagination from "@/components/ReusablePagination";
@@ -61,9 +64,12 @@ import { API_BASE_URL } from "@/config";
 const API_URL = `${API_BASE_URL}/api`;
 
 export default function Users() {
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [showCreate, setShowCreate] = useState(false);
     const [users, setUsers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showOnboardingGuide, setShowOnboardingGuide] = useState(searchParams.get("onboarding") === "true");
 
     // Search and Filter States
     const [searchQuery, setSearchQuery] = useState("");
@@ -90,6 +96,15 @@ export default function Users() {
     useEffect(() => {
         fetchUsers();
     }, []);
+
+    // Sync onboarding guide state with URL parameter
+    useEffect(() => {
+        const onboarding = searchParams.get("onboarding") === "true";
+        if (onboarding) {
+            console.log("Onboarding mode detected in Users page");
+            setShowOnboardingGuide(true);
+        }
+    }, [searchParams]);
 
     const fetchUsers = async () => {
         try {
@@ -240,9 +255,62 @@ export default function Users() {
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Users</h1>
                         <p className="text-sm text-muted-foreground mt-0.5">Manage system users, their roles and access status</p>
                     </div>
-                    <Button onClick={() => openModal("create")} size="sm" className="w-full sm:w-auto gap-1.5 shadow-sm bg-[#213847] hover:bg-[#213847]/90 text-white rounded-xl px-5 h-11">
-                        <UserPlus className="h-4 w-4" /> Create User
-                    </Button>
+
+                    <div className={`relative ${showOnboardingGuide ? "z-[60]" : ""}`}>
+                        {showOnboardingGuide && (
+                            <div className="absolute inset-0 -m-2 rounded-2xl ring-[8px] ring-blue-500/50 animate-pulse z-[-1]" />
+                        )}
+                        <Button 
+                            onClick={() => {
+                                openModal("create");
+                                setShowOnboardingGuide(false);
+                            }} 
+                            size="sm" 
+                            className={`w-full sm:w-auto gap-1.5 shadow-sm bg-[#213847] hover:bg-[#213847]/90 text-white rounded-xl px-5 h-11 transition-all ${showOnboardingGuide ? "relative z-[60] ring-[6px] ring-blue-500 ring-offset-2 scale-105 shadow-2xl" : ""}`}
+                        >
+                            <UserPlus className="h-4 w-4" /> Create User
+                        </Button>
+                        {/* Step 3: Users Onboarding Guide */}
+                        {showOnboardingGuide && (
+                            <>
+                                <div className="fixed inset-0 bg-slate-900/30 z-[50] animate-in fade-in duration-700" />
+                                <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:translate-y-0 md:absolute md:inset-auto md:top-14 md:right-0 z-[60] animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div className="bg-white border-0 rounded-[28px] shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-5 md:p-6 w-full max-w-[720px] mx-auto md:ml-0 relative overflow-hidden group/modal">
+                                        <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-500" />
+                                        
+                                        <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
+                                                    <UsersIcon className="w-6 h-6 text-blue-600" />
+                                                </div>
+                                                <h4 className="font-black text-xl text-slate-900 tracking-tight whitespace-nowrap">Step 3: Add Users</h4>
+                                            </div>
+
+                                        <div className="space-y-4">
+                                            <p className="text-sm font-medium text-slate-600 leading-relaxed px-1">
+                                                Clicking here you can create new user like auditor auditee etc.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex justify-end pt-2">
+                                            <Button 
+                                                size="sm"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95 py-6 text-base"
+                                                onClick={() => {
+                                                    setShowOnboardingGuide(false);
+                                                    // Transition to Step 4: Self Assessment
+                                                    navigate("/self-assessment?onboarding=true");
+                                                }}
+                                            >
+                                                Next <ArrowRight className="ml-2 w-5 h-5" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                    </div>
                 </div>
 
                 {/* Filters Row */}

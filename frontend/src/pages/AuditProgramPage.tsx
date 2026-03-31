@@ -781,7 +781,7 @@ const AuditProgramPage = () => {
                         })()}
                     </div>
                 ) : ((
-                    <div className="flex flex-col items-center justify-center p-24 bg-white/50 backdrop-blur-xl rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-6 animate-in zoom-in-95 duration-1000">
+                    <div className="flex flex-col items-center justify-center p-24 bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-6 animate-in zoom-in-95 duration-1000">
                         <Globe className="w-16 h-16 text-slate-200" />
                         <div className="space-y-2">
                             <h3 className="text-xl font-black text-slate-800">Operational Sites Missing</h3>

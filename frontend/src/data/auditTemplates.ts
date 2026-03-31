@@ -73,6 +73,17 @@ export const auditTemplates: AuditTemplate[] = [
         description: "Clause-by-clause audit with detailed finding reporting.",
         content: [
             {
+                clauseId: "4",
+                title: "Context of the Organization",
+                subClauses: [
+                    "4 Context of the Organization",
+                    "4.1 Understanding the organization & its context",
+                    "4.2 Understanding the needs and expectations of interested parties",
+                    "4.3 Determining the scope of the EMS",
+                    "4.4 Environmental management system"
+                ]
+            },
+            {
                 clauseId: "5",
                 title: "Leadership and Commitment",
                 subClauses: [
@@ -147,6 +158,17 @@ export const auditTemplates: AuditTemplate[] = [
         type: "clause-checklist",
         description: "Clause-by-clause Quality Management System audit.",
         content: [
+            {
+                clauseId: "4",
+                title: "Context of the Organization",
+                subClauses: [
+                    "4 Context of the Organization",
+                    "4.1 Understanding the organization & its context",
+                    "4.2 Understanding the needs and expectations of interested parties",
+                    "4.3 Determining the scope of the QMS",
+                    "4.4 QMS and its processes"
+                ]
+            },
             {
                 clauseId: "5",
                 title: "Leadership",
@@ -260,6 +282,17 @@ export const auditTemplates: AuditTemplate[] = [
         type: "clause-checklist",
         description: "Clause-by-clause Occupational Health and Safety audit.",
         content: [
+            {
+                clauseId: "4",
+                title: "Context of the Organization",
+                subClauses: [
+                    "4 Context of the Organization",
+                    "4.1 Understanding the organization & its context",
+                    "4.2 Understanding the needs and expectations of interested parties",
+                    "4.3 Determining the scope of the OH & S management system",
+                    "4.4 OH & S management system"
+                ]
+            },
             {
                 clauseId: "5",
                 title: "Leadership and worker participation",

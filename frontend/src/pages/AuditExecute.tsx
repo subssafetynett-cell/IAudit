@@ -333,13 +333,18 @@ const AuditExecute = () => {
             if (data.showAuditFindings !== undefined) setShowAuditFindings(data.showAuditFindings);
             if (data.clauseFiles) setClauseFiles(data.clauseFiles);
             if (data.genericFiles) setGenericFiles(data.genericFiles);
-            if (data.editableChecklist) {
+            const currentTemplate = found.templateId ? auditTemplates.find(t => t.id === found.templateId) : null;
+
+            if (data.editableChecklist && data.editableChecklist.length > 0) {
               setEditableChecklist(data.editableChecklist);
-            } else if (template?.content) {
-              setEditableChecklist(template.content);
+            } else if (currentTemplate?.content) {
+              setEditableChecklist(currentTemplate.content);
             }
-          } else if (template?.content) {
-            setEditableChecklist(template.content);
+          } else {
+            const currentTemplate = found.templateId ? auditTemplates.find(t => t.id === found.templateId) : null;
+            if (currentTemplate?.content) {
+              setEditableChecklist(currentTemplate.content);
+            }
           }
         }
       } catch (error) {
@@ -2574,8 +2579,15 @@ const AuditExecute = () => {
               </Button>
             </div>
             {(editableChecklist as ClauseChecklistContent[]).map((clauseContent, index) => {
-              // 1. Filter by schedule selection if applicable
-              if (explicitlySelectedClauses.length > 0 && !explicitlySelectedClauses.some(c => c.id === clauseContent.clauseId)) {
+              // 1. Filter sub-clauses individually based on the schedule
+              const explicitlyHasClauses = explicitlySelectedClauses.length > 0;
+              const filteredSubClauses = clauseContent.subClauses?.filter((sub) => {
+                if (!explicitlyHasClauses) return true;
+                return isClauseSelected(sub);
+              }) || [];
+
+              // If schedule is active but no sub-clauses matched, completely hide this major clause box
+              if (explicitlyHasClauses && filteredSubClauses.length === 0) {
                 return null;
               }
 
@@ -2676,7 +2688,7 @@ const AuditExecute = () => {
                         )}
                       </div>
                       <div className="space-y-2">
-                        {clauseContent.subClauses?.map((sub, i) => (
+                        {filteredSubClauses.map((sub, i) => (
                           <div key={i} className="flex items-start gap-3 group">
                             {isEditMode ? (
                               <div className="flex-1 flex gap-2">

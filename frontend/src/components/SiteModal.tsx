@@ -13,12 +13,13 @@ interface Props {
     onSubmit: (data: any) => void;
     initialData?: Partial<Site>;
     mode?: "create" | "edit";
+    hideCancel?: boolean;
 }
 
 const SITE_TYPES: SiteType[] = ["Warehouse", "Office", "Factory", "Retail", "Other"];
 const STATUSES = ["Active", "Inactive", "Maintenance"];
 
-export default function SiteModal({ open, onClose, onSubmit, initialData, mode = "create" }: Props) {
+export default function SiteModal({ open, onClose, onSubmit, initialData, mode = "create", hideCancel = false }: Props) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [siteType, setSiteType] = useState<string>("");
@@ -85,7 +86,10 @@ export default function SiteModal({ open, onClose, onSubmit, initialData, mode =
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden"
+                onPointerDownOutside={hideCancel ? (e) => e.preventDefault() : undefined}
+                onEscapeKeyDown={hideCancel ? (e) => e.preventDefault() : undefined}
+            >
                 <DialogHeader className="p-6 pb-2">
                     <DialogTitle className="flex items-center gap-2">
                         {mode === "create" ? (
@@ -311,10 +315,12 @@ export default function SiteModal({ open, onClose, onSubmit, initialData, mode =
                     )}
                 </div>
 
-                <DialogFooter className="p-6 pt-4 border-t bg-muted/20">
-                    <Button variant="outline" onClick={onClose} className="px-6">
-                        Cancel
-                    </Button>
+                <DialogFooter className="p-6 pt-4 border-t bg-muted/20 gap-2">
+                    {!hideCancel && (
+                        <Button variant="outline" onClick={onClose} className="px-6">
+                            Cancel
+                        </Button>
+                    )}
                     <Button onClick={handleSubmit} className="px-8 shadow-sm">
                         {mode === "create" ? "Add Site" : "Save Changes"}
                     </Button>

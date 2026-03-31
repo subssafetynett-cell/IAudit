@@ -25,6 +25,7 @@ interface Props {
   }) => void;
   initialData?: Partial<Company>;
   mode?: "create" | "edit";
+  hideCancel?: boolean;
 }
 
 const INDUSTRIES = [
@@ -38,7 +39,7 @@ const INDUSTRIES = [
   "Other",
 ];
 
-export default function CompanyModal({ open, onClose, onSubmit, initialData, mode = "create" }: Props) {
+export default function CompanyModal({ open, onClose, onSubmit, initialData, mode = "create", hideCancel = false }: Props) {
   const [name, setName] = useState("");
   const [logo, setLogo] = useState<string | undefined>();
   const [industry, setIndustry] = useState("");
@@ -88,8 +89,8 @@ export default function CompanyModal({ open, onClose, onSubmit, initialData, mod
               height = Math.round((height * MAX) / width);
               width = MAX;
             } else {
-              width = Math.round((width * MAX) / height);
-              height = MAX;
+              width = MAX;
+              height = Math.round((height * MAX) / width);
             }
           }
           canvas.width = width;
@@ -135,7 +136,10 @@ export default function CompanyModal({ open, onClose, onSubmit, initialData, mod
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden" 
+        onPointerDownOutside={hideCancel ? (e) => e.preventDefault() : undefined}
+        onEscapeKeyDown={hideCancel ? (e) => e.preventDefault() : undefined}
+      >
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="flex items-center gap-2 text-xl">
             {mode === "create" ? (
@@ -324,9 +328,11 @@ export default function CompanyModal({ open, onClose, onSubmit, initialData, mod
         </div>
 
         <DialogFooter className="p-6 pt-4 border-t bg-muted/20 gap-2">
-          <Button variant="outline" onClick={onClose} className="px-6">
-            Cancel
-          </Button>
+          {!hideCancel && (
+            <Button variant="outline" onClick={onClose} className="px-6">
+              Cancel
+            </Button>
+          )}
           <Button onClick={handleSubmit} className="px-8 shadow-sm bg-[#213847] hover:bg-[#213847]/90 text-white">
             {mode === "create" ? "Create Company" : "Save Changes"}
           </Button>
