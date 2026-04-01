@@ -100,7 +100,7 @@ export default function SuperAdmin() {
             setIsLoading(true);
             const [usersRes, companiesRes] = await Promise.all([
                 fetch(`${API_URL}/users`),
-                fetch(`${API_URL}/companies`)
+                fetch(`${API_URL}/companies?admin=true`)
             ]);
 
             if (usersRes.ok && companiesRes.ok) {

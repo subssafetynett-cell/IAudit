@@ -121,16 +121,26 @@ app.get('/api/admin/upgrade-db', (req, res) => {
 
 // Example route to get all companies (including sites and departments)
 app.get('/api/companies', async (req, res) => {
-    const { userId } = req.query;
-    console.log(`[DEBUG] GET /api/companies called with userId: ${userId}`);
-
-    // SECURITY: Enforce strict userId filtering. Do not return all companies if userId is missing.
-    if (!userId || userId === 'undefined' || userId === 'null') {
-        console.warn(`[SECURITY] GET /api/companies called without valid userId. Returning empty list.`);
-        return res.json([]);
-    }
-
+    const { userId, admin } = req.query;
+    console.log(`[DEBUG] GET /api/companies called with userId: ${userId}, admin: ${admin}`);
     try {
+        if (admin === 'true') {
+            const companies = await prisma.company.findMany({
+                include: {
+                    sites: {
+                        include: { departments: true }
+                    }
+                }
+            });
+            console.log(`[DEBUG] Fetched ${companies.length} companies for Admin.`);
+            return res.json(companies);
+        }
+
+        // SECURITY: Enforce strict userId filtering. Do not return all companies if userId is missing.
+        if (!userId || userId === 'undefined' || userId === 'null') {
+            console.warn(`[SECURITY] GET /api/companies called without valid userId. Returning empty list.`);
+            return res.json([]);
+        }
         const parsedUserId = parseInt(userId);
         if (isNaN(parsedUserId)) {
             return res.json([]);
@@ -659,10 +669,7 @@ app.get('/api/users', async (req, res) => {
                 role: true,
                 customRoleName: true,
                 isActive: true,
-                createdAt: true,
-                companies: {
-                    select: { name: true }
-                }
+                createdAt: true
             }
         });
         res.json(users);
