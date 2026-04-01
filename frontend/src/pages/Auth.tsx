@@ -302,6 +302,7 @@ export default function Auth() {
                                     <div className="space-y-1.5">
                                         <Label className="text-xs font-semibold text-[#4B5563]">Phone Number</Label>
                                         <Input
+                                            required
                                             type="tel"
                                             placeholder="+1 234 567 8900"
                                             value={signupPhone}
