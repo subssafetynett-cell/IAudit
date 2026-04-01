@@ -1098,22 +1098,33 @@ const AuditExecute = () => {
         doc.setFontSize(9); doc.setTextColor(150, 150, 150);
         doc.text('No findings recorded yet.', margin, y); y += 12;
       } else {
+        const bodyRows: any[] = [];
+        const lblStyle = { fillColor: darkColor as [number, number, number], textColor: [255, 255, 255] as [number, number, number], fontStyle: 'bold' as const, fontSize: 8, cellPadding: 3 };
+        
+        filledClauses.forEach(c => {
+          const d = (clauseData[c.clauseId] || {}) as any;
+          const requirement = [c.title, ...(c.subClauses || [])].filter(Boolean).join('\n');
+          bodyRows.push([c.clauseId, requirement, d.findingType || '—', d.evidence || '—']);
+          
+          if (d.findingType && d.findingType !== 'C') {
+            if (d.description?.trim()) bodyRows.push([{ content: 'Description of Finding', styles: lblStyle }, { content: d.description, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.correction?.trim()) bodyRows.push([{ content: 'Correction Done', styles: lblStyle }, { content: d.correction, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.rootCause?.trim()) bodyRows.push([{ content: 'Root Cause', styles: lblStyle }, { content: d.rootCause, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.correctiveAction?.trim()) bodyRows.push([{ content: 'Corrective Action', styles: lblStyle }, { content: d.correctiveAction, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+          }
+        });
+
         autoTable(doc, {
           startY: y, head: [['Clause', 'Requirement', 'Status', 'Evidence']],
-          body: filledClauses.map(c => { 
-            const d = (clauseData[c.clauseId] || {}) as any; 
-            // Join sub clauses with newlines
-            const requirement = [c.title, ...(c.subClauses || [])].filter(Boolean).join('\n');
-            return [c.clauseId, requirement, d.findingType || '—', d.evidence || '—']; 
-          }),
+          body: bodyRows,
           theme: 'grid', styles: { fontSize: 8, overflow: 'linebreak' },
           columnStyles: { 0: { cellWidth: 18 }, 2: { cellWidth: 18 } }, headStyles: { fillColor: darkColor },
           didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 2) {
-              const f = data.cell.raw as string;
+              const f = String(data.cell.raw || '');
               if (f === 'C') data.cell.styles.textColor = [16, 185, 129];
               else if (f === 'OFI') data.cell.styles.textColor = [245, 158, 11];
-              else if (f !== '—') data.cell.styles.textColor = [239, 68, 68];
+              else if (f !== '—' && f !== '') data.cell.styles.textColor = [239, 68, 68];
             }
           }
         });
@@ -1558,11 +1569,28 @@ const AuditExecute = () => {
       if (filledClauses.length === 0) {
         content.push(new Paragraph({ children: [new TextRun({ text: 'No findings recorded yet.', size: 20, color: '888888' })] }));
       } else {
-        content.push(tbl(['Clause', 'Requirement', 'Status', 'Evidence'], filledClauses.map(c => { 
+        const makeBlueLabel = (label: string, value: string) =>
+          new DocxTableRow({
+            children: [
+              new DocxTableCell({ shading: { fill: darkFill }, children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, color: 'FFFFFF', size: 18 })] })] }),
+              new DocxTableCell({ columnSpan: 3, children: [new Paragraph({ children: [new TextRun({ text: value, size: 18 })] })] }),
+            ]
+          });
+          
+        const tableRows: DocxTableRow[] = [makeRow(['Clause', 'Requirement', 'Status', 'Evidence'], darkFill)];
+        for (const c of filledClauses) {
           const d = (clauseData[c.clauseId] || {}) as any; 
           const requirement = [c.title, ...(c.subClauses || [])].filter(Boolean).join('\n');
-          return [c.clauseId, requirement, d.findingType || '—', d.evidence || '—']; 
-        })));
+          tableRows.push(makeRow([c.clauseId, requirement, d.findingType || '—', d.evidence || '—']));
+          
+          if (d.findingType && d.findingType !== 'C') {
+             if (d.description?.trim()) tableRows.push(makeBlueLabel('Description of Finding', d.description));
+             if (d.correction?.trim()) tableRows.push(makeBlueLabel('Correction Done', d.correction));
+             if (d.rootCause?.trim()) tableRows.push(makeBlueLabel('Root Cause', d.rootCause));
+             if (d.correctiveAction?.trim()) tableRows.push(makeBlueLabel('Corrective Action', d.correctiveAction));
+          }
+        }
+        content.push(new DocxTable({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: tableRows }));
       }
     } else if (template.type === 'section') {
       content.push(makeHeader('8. SECTION RESPONSES'));

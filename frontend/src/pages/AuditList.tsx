@@ -360,7 +360,8 @@ const AuditList = () => {
           bodyRows.push([clause, eq.question || '(no question text)', eq.findings || '—']);
           if (eq.evidence?.trim()) bodyRows.push([{ content: 'Evidence', styles: lblStyle }, { content: eq.evidence, colSpan: 2, styles: { fontSize: 8, cellPadding: 3 } }]);
           if (eq.findings !== 'C') {
-            if (eq.correction?.trim()) bodyRows.push([{ content: 'Correction', styles: lblStyle }, { content: eq.correction, colSpan: 2, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (eq.description?.trim()) bodyRows.push([{ content: 'Description of Finding', styles: lblStyle }, { content: eq.description, colSpan: 2, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (eq.correction?.trim()) bodyRows.push([{ content: 'Correction Done', styles: lblStyle }, { content: eq.correction, colSpan: 2, styles: { fontSize: 8, cellPadding: 3 } }]);
             if (eq.rootCause?.trim()) bodyRows.push([{ content: 'Root Cause', styles: lblStyle }, { content: eq.rootCause, colSpan: 2, styles: { fontSize: 8, cellPadding: 3 } }]);
             if (eq.correctiveAction?.trim()) bodyRows.push([{ content: 'Corrective Action', styles: lblStyle }, { content: eq.correctiveAction, colSpan: 2, styles: { fontSize: 8, cellPadding: 3 } }]);
           }
@@ -411,22 +412,33 @@ const AuditList = () => {
         doc.setFontSize(9); doc.setTextColor(150, 150, 150);
         doc.text('No findings recorded yet.', margin, y); y += 12;
       } else {
+        const bodyRows: any[] = [];
+        const lblStyle = { fillColor: darkColor as [number, number, number], textColor: [255, 255, 255] as [number, number, number], fontStyle: 'bold' as const, fontSize: 8, cellPadding: 3 };
+        
+        filledClauses.forEach(c => {
+          const d = (clauseData[c.clauseId] || {}) as any;
+          const requirement = [c.title, ...(c.subClauses || [])].filter(Boolean).join('\n');
+          bodyRows.push([c.clauseId, requirement, d.findingType || '—', d.evidence || '—']);
+          
+          if (d.findingType && d.findingType !== 'C') {
+            if (d.description?.trim()) bodyRows.push([{ content: 'Description of Finding', styles: lblStyle }, { content: d.description, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.correction?.trim()) bodyRows.push([{ content: 'Correction Done', styles: lblStyle }, { content: d.correction, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.rootCause?.trim()) bodyRows.push([{ content: 'Root Cause', styles: lblStyle }, { content: d.rootCause, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.correctiveAction?.trim()) bodyRows.push([{ content: 'Corrective Action', styles: lblStyle }, { content: d.correctiveAction, colSpan: 3, styles: { fontSize: 8, cellPadding: 3 } }]);
+          }
+        });
+
         autoTable(doc, {
           startY: y, head: [['Clause', 'Requirement', 'Status', 'Evidence']],
-          body: filledClauses.map(c => { 
-            const d = (clauseData[c.clauseId] || {}) as any; 
-            // Join sub clauses with newlines
-            const requirement = [c.title, ...(c.subClauses || [])].filter(Boolean).join('\n');
-            return [c.clauseId, requirement, d.findingType || '—', d.evidence || '—']; 
-          }),
+          body: bodyRows,
           theme: 'grid', styles: { fontSize: 8, overflow: 'linebreak' },
           columnStyles: { 0: { cellWidth: 18 }, 2: { cellWidth: 18 } }, headStyles: { fillColor: darkColor },
           didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 2) {
-              const f = data.cell.raw as string;
+              const f = String(data.cell.raw || '');
               if (f === 'C') data.cell.styles.textColor = [16, 185, 129];
               else if (f === 'OFI') data.cell.styles.textColor = [245, 158, 11];
-              else if (f !== '—') data.cell.styles.textColor = [239, 68, 68];
+              else if (f !== '—' && f !== '') data.cell.styles.textColor = [239, 68, 68];
             }
           }
         });
@@ -497,8 +509,8 @@ const AuditList = () => {
           rows.push(rowData);
 
           if (d.findings !== 'C') {
-            if (d.description?.trim()) rows.push([{ content: 'Details', styles: lblStyle }, { content: d.description, colSpan: activeCount + 1, styles: { fontSize: 8, cellPadding: 3 } }]);
-            if (d.correction?.trim()) rows.push([{ content: 'Correction', styles: lblStyle }, { content: d.correction, colSpan: activeCount + 1, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.description?.trim()) rows.push([{ content: 'Description of Finding', styles: lblStyle }, { content: d.description, colSpan: activeCount + 1, styles: { fontSize: 8, cellPadding: 3 } }]);
+            if (d.correction?.trim()) rows.push([{ content: 'Correction Done', styles: lblStyle }, { content: d.correction, colSpan: activeCount + 1, styles: { fontSize: 8, cellPadding: 3 } }]);
             if (d.rootCause?.trim()) rows.push([{ content: 'Root Cause', styles: lblStyle }, { content: d.rootCause, colSpan: activeCount + 1, styles: { fontSize: 8, cellPadding: 3 } }]);
             if (d.correctiveAction?.trim()) rows.push([{ content: 'Corrective Action', styles: lblStyle }, { content: d.correctiveAction, colSpan: activeCount + 1, styles: { fontSize: 8, cellPadding: 3 } }]);
           }
