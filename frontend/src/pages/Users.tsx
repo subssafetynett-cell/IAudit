@@ -359,7 +359,6 @@ export default function Users() {
                                     <TableHead className="w-[80px] text-white pl-6">SL No.</TableHead>
                                     <TableHead className="text-white">Name</TableHead>
                                     <TableHead className="text-white">Email</TableHead>
-                                    <TableHead className="text-white">Company</TableHead>
                                     <TableHead className="text-white">Role</TableHead>
                                     <TableHead className="text-white">Status</TableHead>
                                     <TableHead className="text-white">Created At</TableHead>
@@ -369,13 +368,13 @@ export default function Users() {
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="h-24 text-center">
+                                        <TableCell colSpan={7} className="h-24 text-center">
                                             Loading users...
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredUsers.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="h-64 text-center">
+                                        <TableCell colSpan={7} className="h-64 text-center">
                                             <div className="flex flex-col items-center justify-center py-10">
                                                 <UserIcon className="h-10 w-10 text-muted-foreground/40 mb-3" />
                                                 <p className="text-sm text-muted-foreground">No users found</p>
@@ -396,11 +395,6 @@ export default function Users() {
                                             <TableCell>
                                                 <span className="text-xs text-[#213847]/80 flex items-center gap-1 font-medium">
                                                     <Mail className="h-3 w-3" /> {user.email}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-xs font-semibold text-[#213847]">
-                                                    {user.companies && user.companies.length > 0 ? user.companies[0].name : "-"}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
