@@ -39,7 +39,13 @@ export function useUserStatus() {
                 window.location.href = '/login';
             } else {
                 // Update localStorage with latest status (trial expiration, etc.)
-                const updatedUser = { ...JSON.parse(storedUser), ...data };
+                const storedUserData = JSON.parse(storedUser);
+                const updatedUser = { 
+                    ...storedUserData, 
+                    ...data,
+                    // Preserve properties that might not be in data but are in storedUser
+                    onboardingCompleted: data.onboardingCompleted ?? storedUserData.onboardingCompleted
+                };
                 localStorage.setItem("user", JSON.stringify(updatedUser));
             }
         } catch {

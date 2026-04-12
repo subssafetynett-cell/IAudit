@@ -1098,16 +1098,6 @@ const AuditExecute = () => {
         doc.setFontSize(9); doc.setTextColor(150, 150, 150);
         doc.text('No findings recorded yet.', margin, y); y += 12;
       } else {
-<<<<<<< HEAD
-        autoTable(doc, {
-          startY: y, head: [['Clause', 'Requirement', 'Status', 'Evidence']],
-          body: filledClauses.map(c => { 
-            const d = (clauseData[c.clauseId] || {}) as any; 
-            // Join sub clauses with newlines
-            const requirement = [c.title, ...(c.subClauses || [])].filter(Boolean).join('\n');
-            return [c.clauseId, requirement, d.findingType || '—', d.evidence || '—']; 
-          }),
-=======
         const bodyRows: any[] = [];
         const lblStyle = { fillColor: darkColor as [number, number, number], textColor: [255, 255, 255] as [number, number, number], fontStyle: 'bold' as const, fontSize: 8, cellPadding: 3 };
         
@@ -1127,22 +1117,14 @@ const AuditExecute = () => {
         autoTable(doc, {
           startY: y, head: [['Clause', 'Requirement', 'Status', 'Evidence']],
           body: bodyRows,
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
           theme: 'grid', styles: { fontSize: 8, overflow: 'linebreak' },
           columnStyles: { 0: { cellWidth: 18 }, 2: { cellWidth: 18 } }, headStyles: { fillColor: darkColor },
           didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 2) {
-<<<<<<< HEAD
-              const f = data.cell.raw as string;
-              if (f === 'C') data.cell.styles.textColor = [16, 185, 129];
-              else if (f === 'OFI') data.cell.styles.textColor = [245, 158, 11];
-              else if (f !== '—') data.cell.styles.textColor = [239, 68, 68];
-=======
               const f = String(data.cell.raw || '');
               if (f === 'C') data.cell.styles.textColor = [16, 185, 129];
               else if (f === 'OFI') data.cell.styles.textColor = [245, 158, 11];
               else if (f !== '—' && f !== '') data.cell.styles.textColor = [239, 68, 68];
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
             }
           }
         });
@@ -1587,13 +1569,6 @@ const AuditExecute = () => {
       if (filledClauses.length === 0) {
         content.push(new Paragraph({ children: [new TextRun({ text: 'No findings recorded yet.', size: 20, color: '888888' })] }));
       } else {
-<<<<<<< HEAD
-        content.push(tbl(['Clause', 'Requirement', 'Status', 'Evidence'], filledClauses.map(c => { 
-          const d = (clauseData[c.clauseId] || {}) as any; 
-          const requirement = [c.title, ...(c.subClauses || [])].filter(Boolean).join('\n');
-          return [c.clauseId, requirement, d.findingType || '—', d.evidence || '—']; 
-        })));
-=======
         const makeBlueLabel = (label: string, value: string) =>
           new DocxTableRow({
             children: [
@@ -1616,7 +1591,6 @@ const AuditExecute = () => {
           }
         }
         content.push(new DocxTable({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: tableRows }));
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
       }
     } else if (template.type === 'section') {
       content.push(makeHeader('8. SECTION RESPONSES'));
@@ -2633,10 +2607,6 @@ const AuditExecute = () => {
               </Button>
             </div>
             {(editableChecklist as ClauseChecklistContent[]).map((clauseContent, index) => {
-<<<<<<< HEAD
-              // 1. Filter by schedule selection if applicable
-              if (explicitlySelectedClauses.length > 0 && !explicitlySelectedClauses.some(c => c.id === clauseContent.clauseId)) {
-=======
               // 1. Filter sub-clauses individually based on the schedule
               const explicitlyHasClauses = explicitlySelectedClauses.length > 0;
               const filteredSubClauses = clauseContent.subClauses?.filter((sub) => {
@@ -2646,7 +2616,6 @@ const AuditExecute = () => {
 
               // If schedule is active but no sub-clauses matched, completely hide this major clause box
               if (explicitlyHasClauses && filteredSubClauses.length === 0) {
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
                 return null;
               }
 
@@ -2747,11 +2716,7 @@ const AuditExecute = () => {
                         )}
                       </div>
                       <div className="space-y-2">
-<<<<<<< HEAD
-                        {clauseContent.subClauses?.map((sub, i) => (
-=======
                         {filteredSubClauses.map((sub, i) => (
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
                           <div key={i} className="flex items-start gap-3 group">
                             {isEditMode ? (
                               <div className="flex-1 flex gap-2">

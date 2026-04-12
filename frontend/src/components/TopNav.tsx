@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Search, User, LogOut, Settings, UserCircle, ChevronRight, GraduationCap, X } from "lucide-react";
+import { Bell, Search, User, LogOut, Settings, UserCircle, ChevronRight, GraduationCap, X, Info, GraduationCap as GraduationCapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -17,7 +17,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Info, GraduationCap as GraduationCapIcon } from "lucide-react";
 import createCompanyGuide from "@/assets/create_company_guide.png";
 import editCompanyGuide from "@/assets/edit_company_guide.png";
 import addSiteGuide from "@/assets/add_site_guide.png";
@@ -153,13 +152,13 @@ export function TopNav() {
                 </div>
 
                 {/* Visual Guide Image */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(createCompanyGuide)}
                 >
-                  <img 
-                    src={createCompanyGuide} 
-                    alt="Create Company Guide" 
+                  <img
+                    src={createCompanyGuide}
+                    alt="Create Company Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -182,13 +181,13 @@ export function TopNav() {
                 </div>
 
                 {/* Visual Guide Image Step 2 (Edit) */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(editCompanyGuide)}
                 >
-                  <img 
-                    src={editCompanyGuide} 
-                    alt="Edit Company Guide" 
+                  <img
+                    src={editCompanyGuide}
+                    alt="Edit Company Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -221,26 +220,26 @@ export function TopNav() {
                 </div>
 
                 {/* Visual Guide Image Step 2 (Add Site) */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(addSiteGuide)}
                 >
-                  <img 
-                    src={addSiteGuide} 
-                    alt="Add Site Guide" 
+                  <img
+                    src={addSiteGuide}
+                    alt="Add Site Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
                 {/* Second Visual Guide Image Step 2 (Form Modal) */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(addSiteFormGuide)}
                 >
-                  <img 
-                    src={addSiteFormGuide} 
-                    alt="Add Site Form Guide" 
+                  <img
+                    src={addSiteFormGuide}
+                    alt="Add Site Form Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -277,26 +276,26 @@ export function TopNav() {
                 </div>
 
                 {/* Visual Guide Image Step 3 */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(createUserGuide)}
                 >
-                  <img 
-                    src={createUserGuide} 
-                    alt="Create User Guide" 
+                  <img
+                    src={createUserGuide}
+                    alt="Create User Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
                 {/* Second Visual Guide Image Step 3 (Form Modal) */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(createUserFormGuide)}
                 >
-                  <img 
-                    src={createUserFormGuide} 
-                    alt="Create User Form Guide" 
+                  <img
+                    src={createUserFormGuide}
+                    alt="Create User Form Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -337,13 +336,13 @@ export function TopNav() {
                 </div>
 
                 {/* Visual Guide Image Step 4 */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(selfAssessmentGuide)}
                 >
-                  <img 
-                    src={selfAssessmentGuide} 
-                    alt="Self Assessment Guide" 
+                  <img
+                    src={selfAssessmentGuide}
+                    alt="Self Assessment Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -384,21 +383,19 @@ export function TopNav() {
                 </div>
 
                 {/* Visual Guide Image Step 5 */}
-                <div 
+                <div
                   className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-xl bg-slate-50 cursor-zoom-in"
                   onClick={() => setSelectedImage(gapAnalysisGuide)}
                 >
-                  <img 
-                    src={gapAnalysisGuide} 
-                    alt="Gap Analysis Guide" 
+                  <img
+                    src={gapAnalysisGuide}
+                    alt="Gap Analysis Guide"
                     className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
 
-              {/* How to start audits? Section */}
-              <div className="space-y-6 pt-10 border-t border-slate-100">
               {/* How to start audits? Section */}
               <div className="space-y-6 pt-10 border-t border-slate-100 text-left">
                 <div className="space-y-3 pt-1">
@@ -412,25 +409,25 @@ export function TopNav() {
 
                 {/* Visual Guide Images Audit Program */}
                 <div className="space-y-6">
-                  <div 
+                  <div
                     className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                     onClick={() => setSelectedImage(auditProgramGuide)}
                   >
-                    <img 
-                      src={auditProgramGuide} 
-                      alt="Audit Program Guide" 
+                    <img
+                      src={auditProgramGuide}
+                      alt="Audit Program Guide"
                       className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   </div>
 
-                  <div 
+                  <div
                     className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                     onClick={() => setSelectedImage(auditProgramFormGuide)}
                   >
-                    <img 
-                      src={auditProgramFormGuide} 
-                      alt="Audit Program Form Guide" 
+                    <img
+                      src={auditProgramFormGuide}
+                      alt="Audit Program Form Guide"
                       className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -445,26 +442,26 @@ export function TopNav() {
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 shadow-[0_0_5px_rgba(59,130,246,0.5)]" />
                       <span>click create button to create the selected program</span>
                     </div>
-                    <div 
+                    <div
                       className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 mt-3 cursor-zoom-in"
                       onClick={() => setSelectedImage(auditProgramTimelineGuide)}
                     >
-                      <img 
-                        src={auditProgramTimelineGuide} 
-                        alt="Audit Program Timeline Guide" 
+                      <img
+                        src={auditProgramTimelineGuide}
+                        alt="Audit Program Timeline Guide"
                         className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
                   </div>
 
-                  <div 
+                  <div
                     className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                     onClick={() => setSelectedImage(auditProgramCreateGuide)}
                   >
-                    <img 
-                      src={auditProgramCreateGuide} 
-                      alt="Audit Program Create Guide" 
+                    <img
+                      src={auditProgramCreateGuide}
+                      alt="Audit Program Create Guide"
                       className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -494,7 +491,6 @@ export function TopNav() {
                   </div>
                 </div>
               </div>
-              </div>
 
               {/* Step 2: Audit Plan Section */}
               <div className="space-y-6 pt-10 border-t border-slate-100 text-left">
@@ -509,25 +505,25 @@ export function TopNav() {
 
                 {/* Visual Guide Images Audit Plan */}
                 <div className="space-y-6">
-                  <div 
+                  <div
                     className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                     onClick={() => setSelectedImage(auditPlanGuide)}
                   >
-                    <img 
-                      src={auditPlanGuide} 
-                      alt="Audit Plan Guide" 
+                    <img
+                      src={auditPlanGuide}
+                      alt="Audit Plan Guide"
                       className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   </div>
 
-                  <div 
+                  <div
                     className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                     onClick={() => setSelectedImage(auditPlanFormGuide)}
                   >
-                    <img 
-                      src={auditPlanFormGuide} 
-                      alt="Audit Plan Form Guide" 
+                    <img
+                      src={auditPlanFormGuide}
+                      alt="Audit Plan Form Guide"
                       className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -575,13 +571,13 @@ export function TopNav() {
                       <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] shrink-0" />
                       <span>click the eye icon to start the audit</span>
                     </div>
-                    <div 
+                    <div
                       className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                       onClick={() => setSelectedImage(auditExecuteGuide)}
                     >
-                      <img 
-                        src={auditExecuteGuide} 
-                        alt="Audit Execution Guide" 
+                      <img
+                        src={auditExecuteGuide}
+                        alt="Audit Execution Guide"
                         className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -593,13 +589,13 @@ export function TopNav() {
                       <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] shrink-0" />
                       <span>start the audit and click save audit progress button to save the audit</span>
                     </div>
-                    <div 
+                    <div
                       className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                       onClick={() => setSelectedImage(auditProgressGuide)}
                     >
-                      <img 
-                        src={auditProgressGuide} 
-                        alt="Audit Progress Guide" 
+                      <img
+                        src={auditProgressGuide}
+                        alt="Audit Progress Guide"
                         className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -620,13 +616,13 @@ export function TopNav() {
                 </div>
 
                 {/* Visual Guide Image Audit Findings */}
-                <div 
+                <div
                   className="relative group rounded-3xl overflow-hidden border-4 border-slate-100 shadow-2xl bg-white p-1 cursor-zoom-in"
                   onClick={() => setSelectedImage(auditFindingsGuide)}
                 >
-                  <img 
-                    src={auditFindingsGuide} 
-                    alt="Audit Findings Guide" 
+                  <img
+                    src={auditFindingsGuide}
+                    alt="Audit Findings Guide"
                     className="w-full h-auto rounded-2xl object-cover transform transition-all duration-700 group-hover:scale-[1.03]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -634,7 +630,7 @@ export function TopNav() {
               </div>
 
               <div className="pt-4">
-                <Button 
+                <Button
                   className="w-full h-14 bg-[#213847] hover:bg-[#1a2d39] text-white font-bold rounded-2xl shadow-xl transition-all active:scale-95 text-lg"
                   onClick={() => setShowLearnModal(false)}
                 >
@@ -644,7 +640,7 @@ export function TopNav() {
             </div>
           </DialogContent>
         </Dialog>
- 
+
         {/* Image Preview Modal */}
         <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
@@ -660,72 +656,73 @@ export function TopNav() {
               </Button>
 
               {selectedImage && (
-                <img 
-                  src={selectedImage} 
-                  alt="Enlarged view" 
+                <img
+                  src={selectedImage}
+                  alt="Enlarged view"
                   className="max-w-full max-h-[90vh] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border-4 border-white/20 object-contain ring-1 ring-black/10"
                 />
               )}
             </div>
           </DialogContent>
         </Dialog>
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-12 w-12 p-0 rounded-full hover:bg-transparent focus-visible:ring-0 mr-6">
-              <div className="h-12 w-12 rounded-full bg-green-600 flex items-center justify-center shadow-md cursor-pointer hover:bg-green-700 transition-colors">
-                <span className="text-base font-bold text-white tracking-wider">{initials}</span>
-              </div>
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="w-[320px] sm:w-[400px] border-l border-border/40 p-0 flex flex-col bg-white">
-            <div className="px-6 py-8 bg-[#f8fafc] border-b border-border/40 flex flex-col items-center text-center">
-              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center border-4 border-white shadow-xl mb-4">
-                <span className="text-2xl font-bold text-primary tracking-wider">{initials}</span>
-              </div>
-              <h2 className="text-xl font-bold text-[#1e293b]">{user.firstName} {user.lastName}</h2>
-              <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
-            </div>
 
-            <div className="flex-1 py-4 flex flex-col gap-1 px-3">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate('/profile-settings');
-                }}
-                className="w-full justify-start h-14 px-4 text-[#475569] hover:text-[#1e293b] hover:bg-slate-100 rounded-xl group transition-all"
-              >
-                <UserCircle className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform" />
-                <span className="font-medium">Profile Settings</span>
-                <ChevronRight className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate('/account-settings');
-                }}
-                className="w-full justify-start h-14 px-4 text-[#475569] hover:text-[#1e293b] hover:bg-slate-100 rounded-xl group transition-all"
-              >
-                <Settings className="mr-3 h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
-                <span className="font-medium">Account Settings</span>
-                <ChevronRight className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </div>
-
-            <div className="p-4 border-t border-border/40 bg-slate-50 mt-auto">
-              <Button
-                variant="destructive"
-                onClick={handleLogout}
-                className="w-full justify-center h-12 rounded-xl group font-semibold shadow-sm"
-              >
-                <LogOut className="mr-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-                Logout
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
+  <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <SheetTrigger asChild>
+      <Button variant="ghost" size="sm" className="h-12 w-12 p-0 rounded-full hover:bg-transparent focus-visible:ring-0 mr-6">
+        <div className="h-12 w-12 rounded-full bg-green-600 flex items-center justify-center shadow-md cursor-pointer hover:bg-green-700 transition-colors">
+          <span className="text-base font-bold text-white tracking-wider">{initials}</span>
+        </div>
+      </Button>
+    </SheetTrigger>
+    <SheetContent className="w-[320px] sm:w-[400px] border-l border-border/40 p-0 flex flex-col bg-white">
+      <div className="px-6 py-8 bg-[#f8fafc] border-b border-border/40 flex flex-col items-center text-center">
+        <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center border-4 border-white shadow-xl mb-4">
+          <span className="text-2xl font-bold text-primary tracking-wider">{initials}</span>
+        </div>
+        <h2 className="text-xl font-bold text-[#1e293b]">{user.firstName} {user.lastName}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
       </div>
-    </header>
+
+      <div className="flex-1 py-4 flex flex-col gap-1 px-3">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setIsOpen(false);
+            navigate('/profile-settings');
+          }}
+          className="w-full justify-start h-14 px-4 text-[#475569] hover:text-[#1e293b] hover:bg-slate-100 rounded-xl group transition-all"
+        >
+          <UserCircle className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform" />
+          <span className="font-medium">Profile Settings</span>
+          <ChevronRight className="ml-auto h-4 w-4 opacity-50" />
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setIsOpen(false);
+            navigate('/account-settings');
+          }}
+          className="w-full justify-start h-14 px-4 text-[#475569] hover:text-[#1e293b] hover:bg-slate-100 rounded-xl group transition-all"
+        >
+          <Settings className="mr-3 h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+          <span className="font-medium">Account Settings</span>
+          <ChevronRight className="ml-auto h-4 w-4 opacity-50" />
+        </Button>
+      </div>
+
+      <div className="p-4 border-t border-border/40 bg-slate-50 mt-auto">
+        <Button
+          variant="destructive"
+          onClick={handleLogout}
+          className="w-full justify-center h-12 rounded-xl group font-semibold shadow-sm"
+        >
+          <LogOut className="mr-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+          Logout
+        </Button>
+      </div>
+    </SheetContent>
+  </Sheet>
+      </div >
+    </header >
   );
 }

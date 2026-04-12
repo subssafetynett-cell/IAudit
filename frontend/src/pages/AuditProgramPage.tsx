@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { API_BASE_URL } from "@/config";
 import { TopNav } from "@/components/TopNav";
@@ -45,6 +45,9 @@ const AuditProgramPage = () => {
     const [viewMode, setViewMode] = useState<"card" | "list">("card");
     const [activeSiteId, setActiveSiteId] = useState<string>("");
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [showOnboardingGuide, setShowOnboardingGuide] = useState(searchParams.get("onboarding") === "true");
+    const [isFinishing, setIsFinishing] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -485,6 +488,43 @@ const AuditProgramPage = () => {
     return (
         <div className="flex-1 space-y-8 p-8 pt-6 min-h-screen bg-white">
             <div className="w-full max-w-[1800px] mx-auto space-y-8 animate-in fade-in duration-500">
+                {/* Onboarding Guide Step 6 */}
+                {showOnboardingGuide && (
+                    <div className="bg-slate-900 text-white p-8 rounded-2xl shadow-2xl border border-slate-800 animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                            <Sparkles className="w-32 h-32" />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="bg-emerald-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">6</div>
+                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30">Final Step</Badge>
+                            </div>
+                            <h2 className="text-3xl font-bold mb-4 tracking-tight">Generate Your Multi-Year Audit Program</h2>
+                            <p className="text-slate-400 text-lg mb-8 max-w-2xl leading-relaxed">
+                                You've set up your company, sites, and users. Now, view your automated multi-year audit schedule. 
+                                Click "Finish Onboarding" to unlock your dashboard and start your trial.
+                            </p>
+                            <div className="flex flex-wrap gap-4">
+                                <Button 
+                                    onClick={handleFinishOnboarding}
+                                    disabled={isFinishing}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 h-12 text-lg font-bold shadow-lg shadow-emerald-900/20 group"
+                                >
+                                    {isFinishing ? "Processing..." : "Finish Onboarding"}
+                                    {!isFinishing && <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    onClick={() => setShowOnboardingGuide(false)}
+                                    className="text-slate-400 hover:text-white hover:bg-white/5"
+                                >
+                                    Dismiss Guide
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
                     <div className="space-y-1">
                         <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2">

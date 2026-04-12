@@ -60,7 +60,11 @@ const Index = () => {
   const totalDepts = companies.reduce((acc, c) => acc + (c.sites?.reduce((a, s) => a + (s.departments?.length || 0), 0) || 0), 0);
 
   useEffect(() => {
-    if (!isLoading && companies.length === 0) {
+    const userJson = localStorage.getItem('user');
+    const user = userJson ? JSON.parse(userJson) : null;
+    
+    // Only show onboarding if user exists and hasn't completed it
+    if (!isLoading && user && !user.onboardingCompleted && companies.length === 0) {
       setShowWelcome(true);
       setOnboardingStep(1);
     }
@@ -72,8 +76,9 @@ const Index = () => {
       const user = JSON.parse(userJson);
       setCurrentUser(user);
       
-      // Show trial modal if trial hasn't started and user is on trial tier
-      if (user.subscriptionStatus === 'trial' && !user.trialEndDate && !localStorage.getItem('trial_modal_seen')) {
+      // Show trial modal ONLY IF onboarding is completed
+      // and trial hasn't started and user is on trial tier
+      if (user.onboardingCompleted && user.subscriptionStatus === 'trial' && !user.trialEndDate && !localStorage.getItem('trial_modal_seen')) {
         setShowTrialModal(true);
         localStorage.setItem('trial_modal_seen', 'true');
       }
@@ -381,10 +386,12 @@ const Index = () => {
             onSubscribe={handleSubscribe} 
         />
       <div className="max-w-[1600px] mx-auto space-y-6">
-        <TrialBanner 
-          subscriptionStatus={currentUser?.subscriptionStatus} 
-          trialEndDate={currentUser?.trialEndDate} 
-        />
+        {currentUser?.onboardingCompleted && (
+          <TrialBanner 
+            subscriptionStatus={currentUser?.subscriptionStatus} 
+            trialEndDate={currentUser?.trialEndDate} 
+          />
+        )}
 
         {/* Top Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">

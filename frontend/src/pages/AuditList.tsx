@@ -23,7 +23,8 @@ import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, ImageRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, WidthType, BorderStyle, AlignmentType, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
-\nimport ReusablePagination from "@/components/ReusablePagination";
+import { auditTemplates, ChecklistContent } from "@/data/auditTemplates";
+import ReusablePagination from "@/components/ReusablePagination";
 
 const AuditList = () => {
     const [auditPlans, setAuditPlans] = useState<any[]>([]);
@@ -77,7 +78,40 @@ const AuditList = () => {
         return typeof plan.auditData === 'string' ? JSON.parse(plan.auditData) : plan.auditData;
     };
 
-\n            toast.success('PDF Downloaded');
+    const handleDownloadPDF = (plan: any) => {
+        try {
+            setLoading(true);
+            const doc = new jsPDF();
+            const darkColor = [33, 56, 71] as [number, number, number];
+            
+            doc.setFontSize(20);
+            doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
+            doc.text("Audit Plan Summary", 14, 22);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+            const auditData = getAuditData(plan);
+            
+            autoTable(doc, {
+                startY: 40,
+                head: [['Field', 'Value']],
+                body: [
+                    ['Audit Name', plan.auditName || '—'],
+                    ['Status', plan.status || 'In Progress'],
+                    ['Location', plan.location || '—'],
+                    ['Lead Auditor', plan.leadAuditor ? `${plan.leadAuditor.firstName} ${plan.leadAuditor.lastName}` : '—'],
+                    ['Progress', `${plan.progress ?? 0}%`],
+                    ['Audit Type', plan.auditType || '—'],
+                    ['Criteria', plan.criteria || '—']
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: darkColor }
+            });
+
+            doc.save(`Audit_Plan_${plan.id}.pdf`);
+            toast.success('PDF Downloaded');
         } catch (error) {
             console.error(error);
             toast.error("Failed to generate PDF");
@@ -85,7 +119,9 @@ const AuditList = () => {
             setLoading(false);
         }
     };
-\n        setLoading(true);
+
+    const handleDownloadDocx = async (planStub: any) => {
+        setLoading(true);
         try {
             const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planStub.id}`);
             if (!res.ok) throw new Error("Failed to fetch full plan details");

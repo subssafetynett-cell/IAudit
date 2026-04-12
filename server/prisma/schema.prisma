@@ -109,6 +109,7 @@ model User {
   createdPlans      AuditPlan[]    @relation("UserAuditPlans")
   leadAuditPrograms AuditProgram[] @relation("LeadAuditor")
   createdPrograms   AuditProgram[] @relation("UserAuditPrograms")
+  onboardingCompleted Boolean    @default(false)
   companies         Company[]      @relation("UserCompanies")
   sites             Site[]         @relation("UserSites")
   creator           User?          @relation("UserCreator", fields: [creatorId], references: [id])

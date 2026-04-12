@@ -14,8 +14,8 @@ dotenv.config();
 try {
     console.log('Synchronizing database schema using local binary...');
     // Use the local node_modules binary instead of npx, as npx may not be in the PATH when run via pm2 or systemd on EC2
-    execSync('./node_modules/.bin/prisma db push --accept-data-loss', { stdio: 'inherit' });
-    execSync('./node_modules/.bin/prisma generate', { stdio: 'inherit' });
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    execSync('npx prisma generate', { stdio: 'inherit' });
     console.log('Database synchronization completed.');
 } catch (error) {
     console.error('Failed to synchronize database. Schema might be out of date:', error.message);
@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3001;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 app.use(cors({
-    origin: ['https://apps.iaudit.global', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080'], // Allow production and local development
+    origin: ['https://apps.iaudit.global', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080', 'http://localhost:8081'], // Allow production and local development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires']
 }));
@@ -862,8 +862,8 @@ app.get('/', (req, res) => {
 app.get('/api/admin/upgrade-db', (req, res) => {
     try {
         console.log('Manual DB upgrade requested...');
-        const outputPush = execSync('./node_modules/.bin/prisma db push --accept-data-loss', { encoding: 'utf-8' });
-        const outputGen = execSync('./node_modules/.bin/prisma generate', { encoding: 'utf-8' });
+        const outputPush = execSync('npx prisma db push --accept-data-loss', { encoding: 'utf-8' });
+        const outputGen = execSync('npx prisma generate', { encoding: 'utf-8' });
 
         res.status(200).send(`<pre>Database Synchronized Successfully!\n\n${outputPush}\n\n${outputGen}\n\nServer is automatically restarting to load the new schema. Please wait 5 seconds and refresh your app!</pre>`);
 
@@ -1413,6 +1413,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Return the full user object (including trial/subscription status) to the frontend
         const { password: _, ...userWithoutPassword } = user;
+        console.log(`[AUTH] Login successful for user: ${user.id}, onboardingCompleted: ${user.onboardingCompleted}`);
         res.status(200).json(userWithoutPassword);
 
     } catch (error) {
@@ -1469,7 +1470,8 @@ app.get('/api/users/:id/status', async (req, res) => {
                 firstName: true,
                 lastName: true,
                 renewalType: true,
-                autopayConsent: true
+                autopayConsent: true,
+                onboardingCompleted: true
             }
         });
 
@@ -1508,6 +1510,7 @@ app.get('/api/users/:id/status', async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             renewalType: user.renewalType,
+            onboardingCompleted: user.onboardingCompleted,
             duration: latestPayment?.duration || null
         });
     } catch (error) {
@@ -1575,7 +1578,7 @@ app.post('/api/users', async (req, res) => {
 
 app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
-    const { firstName, lastName, email, mobile, role, customRoleName, isActive, password } = req.body;
+    const { firstName, lastName, email, mobile, role, customRoleName, isActive, password, onboardingCompleted } = req.body;
     try {
         const updateData = {
             firstName,
@@ -1584,7 +1587,8 @@ app.put('/api/users/:id', async (req, res) => {
             mobile,
             role,
             customRoleName,
-            isActive
+            isActive,
+            onboardingCompleted: onboardingCompleted !== undefined ? onboardingCompleted : undefined
         };
 
         if (password) {
