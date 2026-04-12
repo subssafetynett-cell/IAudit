@@ -37,7 +37,125 @@ export default function Auth() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [resendTimer, setResendTimer] = useState(0);
-\n            return;
+    const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const overlayContentRef = useRef<HTMLDivElement>(null);
+    const signupPaneRef = useRef<HTMLDivElement>(null);
+    const signinPaneRef = useRef<HTMLDivElement>(null);
+
+    const toggleMode = () => {
+        setIsSignUp(!isSignUp);
+        setShowOtpStep(false);
+        setErrorMessage("");
+    };
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (resendTimer > 0) {
+            interval = setTimeout(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearTimeout(interval);
+    }, [resendTimer]);
+
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            const tl = gsap.timeline({ defaults: { duration: 1.0, ease: "power3.inOut" } });
+
+            if (isSignUp) {
+                // Sign Up Mode: Overlay moves LEFT -> RIGHT
+                tl.to(overlayRef.current, { xPercent: 150 });
+                // Form Crossing: Sign Up Form slides from the RIGHT towards the left
+                tl.fromTo(signupPaneRef.current,
+                    { xPercent: 100, opacity: 0 },
+                    { xPercent: 0, opacity: 1, pointerEvents: "auto" }, 0
+                );
+                // Sign In Form slides out to the LEFT
+                tl.to(signinPaneRef.current, { xPercent: -100, opacity: 0, pointerEvents: "none" }, 0);
+            } else {
+                // Sign In Mode: Overlay moves RIGHT -> LEFT
+                tl.to(overlayRef.current, { xPercent: 0 });
+                // Form Crossing: Sign In Form slides from the LEFT towards the right
+                tl.fromTo(signinPaneRef.current,
+                    { xPercent: -100, opacity: 0 },
+                    { xPercent: 0, opacity: 1, pointerEvents: "auto" }, 0
+                );
+                // Sign Up Form slides out to the RIGHT
+                tl.to(signupPaneRef.current, { xPercent: 100, opacity: 0, pointerEvents: "none" }, 0);
+            }
+        }, containerRef);
+
+        return () => ctx.revert();
+    }, [isSignUp]);
+
+    const handleLoginSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!loginEmail || !loginPassword) {
+            setErrorMessage("Please enter both email and password.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        setErrorMessage("");
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: loginEmail, password: loginPassword })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Login failed');
+            }
+
+            // Success! Save user to local storage and navigate to dashboard
+            localStorage.setItem('user', JSON.stringify(data));
+            navigate("/");
+
+        } catch (error: any) {
+            console.error('Login error:', error);
+            setErrorMessage(error.message || "Login failed. Please check your credentials and connection.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleSignupSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Comprehensive field-level validation
+        const errors: Record<string, string> = {};
+        if (!signupFirstName.trim()) errors.firstName = "First name is required";
+        if (!signupLastName.trim()) errors.lastName = "Last name is required";
+        if (!signupEmail.trim()) {
+            errors.email = "Email address is required";
+        } else if (!/\S+@\S+\.\S+/.test(signupEmail)) {
+            errors.email = "Please enter a valid email";
+        }
+        if (!signupPhone.trim()) errors.phone = "Phone number is required";
+        if (!signupPassword) {
+            errors.password = "Password is required";
+        } else if (signupPassword.length < 8) {
+            errors.password = "Password must be at least 8 characters";
+        }
+        if (!signupConfirmPassword) {
+            errors.confirmPassword = "Please confirm your password";
+        } else if (signupPassword !== signupConfirmPassword) {
+            errors.confirmPassword = "Passwords do not match";
+        }
+
+        setSignupErrors(errors);
+
+        // Stop if there are any validation errors
+        if (Object.keys(errors).length > 0) {
+            return;
         }
 
         setIsSubmitting(true);
@@ -172,17 +290,45 @@ export default function Auth() {
                                         <div className="space-y-1.5">
                                             <Label className="text-xs font-semibold text-[#4B5563]">First Name</Label>
                                             <Input
-\n                                        </div>
+                                                placeholder="John"
+                                                value={signupFirstName}
+                                                onChange={(e) => {
+                                                    setSignupFirstName(e.target.value);
+                                                    if (signupErrors.firstName) setSignupErrors(prev => ({ ...prev, firstName: "" }));
+                                                }}
+                                                className={`h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B] ${signupErrors.firstName ? "border-red-500 focus:ring-red-500" : ""}`}
+                                            />
+                                            {signupErrors.firstName && <p className="text-[10px] text-red-500 mt-1 pl-1 font-medium">{signupErrors.firstName}</p>}
+                                        </div>
                                         <div className="space-y-1.5">
                                             <Label className="text-xs font-semibold text-[#4B5563]">Last Name</Label>
                                             <Input
-\n                                        </div>
+                                                placeholder="Doe"
+                                                value={signupLastName}
+                                                onChange={(e) => {
+                                                    setSignupLastName(e.target.value);
+                                                    if (signupErrors.lastName) setSignupErrors(prev => ({ ...prev, lastName: "" }));
+                                                }}
+                                                className={`h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B] ${signupErrors.lastName ? "border-red-500 focus:ring-red-500" : ""}`}
+                                            />
+                                            {signupErrors.lastName && <p className="text-[10px] text-red-500 mt-1 pl-1 font-medium">{signupErrors.lastName}</p>}
+                                        </div>
                                     </div>
 
                                     <div className="space-y-1.5">
                                         <Label className="text-xs font-semibold text-[#4B5563]">Email Address</Label>
                                         <Input
-\n                                    </div>
+                                            type="email"
+                                            placeholder="john@example.com"
+                                            value={signupEmail}
+                                            onChange={(e) => {
+                                                setSignupEmail(e.target.value);
+                                                if (signupErrors.email) setSignupErrors(prev => ({ ...prev, email: "" }));
+                                            }}
+                                            className={`h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B] ${signupErrors.email ? "border-red-500 focus:ring-red-500" : ""}`}
+                                        />
+                                        {signupErrors.email && <p className="text-[10px] text-red-500 mt-1 pl-1 font-medium">{signupErrors.email}</p>}
+                                    </div>
 
                                     <div className="space-y-1.5">
                                         <Label className="text-xs font-semibold text-[#4B5563]">Phone Number</Label>
@@ -190,26 +336,53 @@ export default function Auth() {
                                             type="tel"
                                             placeholder="+1 234 567 8900"
                                             value={signupPhone}
-\n                                    </div>
+                                            onChange={(e) => {
+                                                setSignupPhone(e.target.value);
+                                                if (signupErrors.phone) setSignupErrors(prev => ({ ...prev, phone: "" }));
+                                            }}
+                                            className={`h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B] ${signupErrors.phone ? "border-red-500 focus:ring-red-500" : ""}`}
+                                        />
+                                        {signupErrors.phone && <p className="text-[10px] text-red-500 mt-1 pl-1 font-medium">{signupErrors.phone}</p>}
+                                    </div>
 
                                     <div className="space-y-1.5">
                                         <Label className="text-xs font-semibold text-[#4B5563]">Password</Label>
                                         <div className="relative">
                                             <Input
-\n                                            />
+                                                type={showSignupPassword ? "text" : "password"}
+                                                placeholder="8+ characters"
+                                                value={signupPassword}
+                                                onChange={(e) => {
+                                                    setSignupPassword(e.target.value);
+                                                    if (signupErrors.password) setSignupErrors(prev => ({ ...prev, password: "" }));
+                                                }}
+                                                className={`h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B] ${signupErrors.password ? "border-red-500 focus:ring-red-500" : ""}`}
+                                            />
                                             <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
                                                 {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </button>
                                         </div>
-\n                                            />
+                                        {signupErrors.password && <p className="text-[10px] text-red-500 mt-1 pl-1 font-medium">{signupErrors.password}</p>}
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold text-[#4B5563]">Confirm Password</Label>
+                                        <div className="relative">
+                                            <Input
+                                                type={showSignupConfirmPassword ? "text" : "password"}
+                                                placeholder="Confirm password"
+                                                value={signupConfirmPassword}
+                                                onChange={(e) => {
+                                                    setSignupConfirmPassword(e.target.value);
+                                                    if (signupErrors.confirmPassword) setSignupErrors(prev => ({ ...prev, confirmPassword: "" }));
+                                                }}
+                                                className={`h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B] ${signupErrors.confirmPassword ? "border-red-500 focus:ring-red-500" : ""}`}
+                                            />
                                             <button type="button" onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
                                                 {showSignupConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </button>
                                         </div>
-<<<<<<< HEAD
-=======
                                         {signupErrors.confirmPassword && <p className="text-[10px] text-red-500 mt-1 pl-1 font-medium">{signupErrors.confirmPassword}</p>}
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
                                     </div>
 
                                     <Button disabled={isSubmitting} type="submit" className="w-full h-12 text-base font-bold bg-[#00875B] text-white hover:bg-[#006E4A] rounded-lg shadow-sm transition-all mt-4">

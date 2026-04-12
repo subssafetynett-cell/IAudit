@@ -426,7 +426,39 @@ const CreateAuditPlanPage = () => {
                                         </SelectTrigger>
                                         <SelectContent>
                                             {(() => {
-\n                                                    const uniqueTypes = new Set();
+                                                const determineStandards = () => {
+                                                    const knownStandards = ["ISO 9001", "ISO 14001", "ISO 45001"];
+                                                    // Derive primarily from what's physically in the auditCriteria field
+                                                    const criteriaUpper = auditCriteria.toUpperCase();
+                                                    const criteriaStandards = knownStandards.filter(std => criteriaUpper.includes(std));
+                                                    
+                                                    if (criteriaStandards.length > 0) return criteriaStandards;
+
+                                                    // Fallback to program property if needed
+                                                    if (program?.isoStandard) {
+                                                        const progStandards = knownStandards.filter(std => program.isoStandard.toUpperCase().includes(std));
+                                                        if (progStandards.length > 0) return progStandards;
+                                                        return program.isoStandard.split(',').map((s: string) => s.trim());
+                                                    }
+                                                    
+                                                    return [];
+                                                };
+
+                                                const standards = determineStandards();
+                                                const isMultiStandard = standards.length > 1;
+
+                                                const filtered = auditTemplates.filter(template => {
+                                                    if (standards.length === 0) return true; // Show all if no constraints
+                                                    return standards.some(s => {
+                                                        const tStd = template.standard.toUpperCase();
+                                                        const searchStd = s.toUpperCase();
+                                                        return tStd.includes(searchStd) || searchStd.includes(tStd) || (template.isIntegrated && isMultiStandard);
+                                                    });
+                                                });
+
+                                                if (isMultiStandard && filtered.some(t => t.isIntegrated)) {
+                                                    // For multi-standard, we prioritize the integrated ones
+                                                    const uniqueTypes = new Set();
                                                     return filtered
                                                         .filter(t => {
                                                             if (t.isIntegrated) return true;
@@ -434,10 +466,6 @@ const CreateAuditPlanPage = () => {
                                                             uniqueTypes.add(t.type);
                                                             return true;
                                                         })
-<<<<<<< HEAD
-                                                        .slice(0, 3) // Hard limit to 3 as requested
-=======
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
                                                         .map(template => (
                                                             <SelectItem key={template.id} value={template.id}>
                                                                 {template.title} <span className="text-slate-400 text-xs ml-2">({template.standard})</span>

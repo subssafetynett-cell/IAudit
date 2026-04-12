@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,13 +35,12 @@ import { getQuestionsForStandard } from "../data/gapAnalysisQuestions";
 import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog";
 
 const GapAnalysis = () => {
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [step, setStep] = useState<"list" | "setup" | "analysis" | "results">("list");
+    const [showOnboardingGuide, setShowOnboardingGuide] = useState(searchParams.get("onboarding") === "true");
     const { companies } = useCompanyStore();
     const userCompany = companies.length > 0 ? companies[0] : null;
-
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const isFreeUser = user.subscriptionStatus !== 'active';
-
 
     // Setup State
     const [companyName, setCompanyName] = useState("");
@@ -63,7 +63,6 @@ const GapAnalysis = () => {
     const [newQuestionText, setNewQuestionText] = useState("");
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
-    const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
 
     // Refs for Charts (for PDF generation)
     const pieChartRef = useRef<HTMLDivElement>(null);
@@ -325,7 +324,12 @@ const GapAnalysis = () => {
     }, [searchTerm, filterStandard]);
 
     return (
-        <div className="flex-1 p-8 pt-6 min-h-screen bg-white">
+        <div className="flex-1 p-8 pt-6 min-h-screen bg-white relative">
+            {/* Background Overlay for Onboarding */}
+            {showOnboardingGuide && step === "list" && (
+                <div className="fixed inset-0 bg-slate-900/10 z-[40] transition-all duration-500" />
+            )}
+
             <div className="w-full max-w-[1800px] mx-auto space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 px-4 sm:px-0">
@@ -335,19 +339,71 @@ const GapAnalysis = () => {
                     </div>
                     {/* Header Actions */}
                     {step === "list" && (
-                        <div className="flex w-full sm:w-auto">
-                            <Button onClick={() => {
-                                if (isFreeUser && savedAnalyses.length >= 3) {
-                                    setIsLimitModalOpen(true);
-                                } else {
+                        <div className={`flex w-full sm:w-auto relative ${showOnboardingGuide ? "z-[60]" : ""}`}>
+                            {showOnboardingGuide && (
+                                <div className="absolute inset-0 -m-1 rounded-2xl ring-[8px] ring-emerald-500/50 animate-pulse z-[-1]" />
+                            )}
+                            <Button 
+                                onClick={() => {
                                     setStep("setup");
-                                    setCompanyName("");
-                                    setStandard("");
-                                    setCurrentId(null);
-                                }
-                            }} className="w-full sm:w-auto bg-[#213847] hover:bg-[#213847]/90 text-white rounded-xl h-10 px-4 font-medium shadow-sm transition-all duration-200">
+                                    setShowOnboardingGuide(false);
+                                }} 
+                                className={`w-full sm:w-auto bg-[#213847] hover:bg-[#213847]/90 text-white rounded-xl h-10 px-4 font-medium shadow-sm transition-all duration-300 ${showOnboardingGuide ? 'relative z-[60] ring-[6px] ring-emerald-500 ring-offset-2 scale-105 shadow-2xl' : ''}`}
+                            >
                                 <Plus className="w-4 h-4 mr-2" /> New Analysis
                             </Button>
+                            
+                            {/* Onboarding Guide Tooltip */}
+                            {showOnboardingGuide && (
+                                <>
+                                     <div className="fixed inset-0 bg-slate-900/30 z-[50] animate-in fade-in duration-700" />
+                                    <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:translate-y-0 md:absolute md:inset-auto md:top-full md:mt-4 md:right-0 z-[60] animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div className="bg-white border-0 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-5 md:p-6 w-full max-w-[720px] mx-auto md:mr-0 relative overflow-hidden group/modal">
+                                        <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
+                                        
+                                        <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                                                        <ClipboardList className="w-6 h-6 text-emerald-600" />
+                                                    </div>
+                                                    <h4 className="font-black text-xl text-slate-900 tracking-tight whitespace-nowrap">Step 5: Gap Analysis</h4>
+                                                </div>
+
+                                            <div className="space-y-4">
+                                                <p className="text-sm font-medium text-slate-600 leading-relaxed px-1">
+                                                    Gap Analysis was created for companies that are new to ISO Standards or in transition from old to new ISO Standard. Use of the Gap Analysis is optional for ISO Certified companies.
+                                                </p>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Button 
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl px-4 flex items-center gap-2 font-bold transition-colors"
+                                                    onClick={() => {
+                                                        setShowOnboardingGuide(false);
+                                                        navigate("/self-assessment?onboarding=true");
+                                                    }}
+                                                >
+                                                    <ArrowLeft className="w-4 h-4" /> Back
+                                                </Button>
+                                                <Button 
+                                                    size="sm"
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95 py-6 text-base"
+                                                    onClick={() => {
+                                                        setShowOnboardingGuide(false);
+                                                        // Transition to Step 6: Audit Program
+                                                        navigate("/audits?onboarding=true");
+                                                    }}
+                                                >
+                                                    Next <ArrowRight className="ml-2 w-5 h-5" />
+                                                </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
                         </div>
                     )}
                 </div>
@@ -980,41 +1036,7 @@ const GapAnalysis = () => {
                         </div>
                     )
                 }
-        </div>
-            {/* Trial Limit Modal */}
-            <Dialog open={isLimitModalOpen} onOpenChange={setIsLimitModalOpen}>
-                <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-0 overflow-hidden border-0">
-                    <div className="bg-amber-100/50 p-6 sm:p-8 flex items-center justify-center relative">
-                        <div className="bg-amber-100 p-4 rounded-full">
-                            <AlertCircle className="w-12 h-12 text-amber-600" />
-                        </div>
-                    </div>
-                    <div className="p-6 sm:p-8 text-center space-y-4">
-                        <DialogTitle className="text-xl sm:text-2xl font-black text-slate-800">Trial Limit Reached</DialogTitle>
-                        <DialogDescription className="text-sm sm:text-base text-slate-500 font-medium">
-                            You have reached the maximum limit of 3 Gap Analyses for trial users. You can still view your saved reports.
-                        </DialogDescription>
-                        <p className="text-sm font-semibold text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            Upgrade to a premium plan to unlock unlimited analyses and premium features.
-                        </p>
-                    </div>
-                    <DialogFooter className="p-4 sm:p-6 bg-slate-50 border-t flex flex-col sm:flex-row gap-3">
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setIsLimitModalOpen(false)}
-                            className="w-full sm:w-auto h-12 rounded-xl text-slate-600 font-bold border-slate-200 sm:flex-1"
-                        >
-                            Maybe Later
-                        </Button>
-                        <Button 
-                            onClick={() => window.location.href = '/subscription'}
-                            className="w-full sm:w-auto h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold border-0 shadow-lg shadow-orange-500/20 sm:flex-1 gap-2"
-                        >
-                            Subscribe Now <ArrowRight className="w-4 h-4" />
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>            
+            </div>
         </div >
     );
 };

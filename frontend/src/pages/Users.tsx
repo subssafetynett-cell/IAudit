@@ -1,4 +1,22 @@
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+    UserPlus,
+    Search,
+    MoreHorizontal,
+    User as UserIcon,
+    Mail,
+    Shield,
+    Smartphone,
+    Trash2,
+    Edit2,
+    Eye,
+    ArrowUpRight,
+    UserCheck,
+    UserMinus,
     AlertTriangle,
     ArrowRight,
     Users as UsersIcon
@@ -79,6 +97,71 @@ export default function Users() {
         fetchUsers();
     }, []);
 
+    // Sync onboarding guide state with URL parameter
+    useEffect(() => {
+        const onboarding = searchParams.get("onboarding") === "true";
+        if (onboarding) {
+            console.log("Onboarding mode detected in Users page");
+            setShowOnboardingGuide(true);
+        }
+    }, [searchParams]);
+
+    const fetchUsers = async () => {
+        try {
+            setIsLoading(true);
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const response = await fetch(`${API_URL}/users?creatorId=${user.id}`);
+            if (response.ok) {
+                const responseData = await response.json();
+                let data = Array.isArray(responseData) ? responseData : [];
+
+                // Add the currently logged in user to the list if they aren't already there
+                if (user && user.id) {
+                    const isCurrentUserInList = data.some((u: any) => u.id === user.id);
+                    if (!isCurrentUserInList) {
+                        data.unshift(user);
+                    }
+                }
+
+                setUsers(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+            toast.error("Failed to load users");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAddUser = async (userData: any) => {
+        try {
+            const endpoint = modalMode === "create" ? `${API_URL}/users` : `${API_URL}/users/${selectedUser.id}`;
+            const method = modalMode === "create" ? "POST" : "PUT";
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+            const payload = modalMode === "create" ? { ...userData, creatorId: user.id } : userData;
+
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                const updatedUser = await response.json();
+                if (modalMode === "create") {
+                    setUsers([...users, updatedUser]);
+                    toast.success("User created successfully!");
+                } else {
+                    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+                    if (updatedUser.id === user.id) {
+                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                    }
+                    toast.success("User updated successfully!");
+                }
+            } else {
+                const errorData = await response.json();
+                console.error("Server error data:", errorData);
                 const errorMsg = errorData.error || errorData.message || "Operation failed";
                 toast.error(errorMsg);
                 throw new Error(errorMsg); // Throw so UserModal can catch it

@@ -140,6 +140,303 @@ export default function SuperAdmin() {
         }
     };
 
+    const handleAddUser = async (userData: any) => {
+        try {
+            const endpoint = modalMode === "create" ? `${API_URL}/users` : `${API_URL}/users/${selectedUser.id}`;
+            const method = modalMode === "create" ? "POST" : "PUT";
+            
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(userData),
+            });
+
+            if (response.ok) {
+                const updatedUser = await response.json();
+                if (modalMode === "create") {
+                    setUsers([...users, updatedUser]);
+                    toast.success("User created successfully!");
+                } else {
+                    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+                    toast.success("User updated successfully!");
+                }
+            } else {
+                const errorData = await response.json();
+                console.error("Server error data:", errorData);
+                const errorMsg = errorData.error || errorData.message || "Operation failed";
+                toast.error(errorMsg);
+                throw new Error(errorMsg); // Throw so UserModal can catch it
+            }
+        } catch (error: any) {
+            console.error("Error processing user:", error);
+            if (error.message && error.message !== "Operation failed") {
+                throw error; // Re-throw specific errors for the modal
+            }
+            const genericMsg = "An error occurred while creating/updating user.";
+            toast.error(genericMsg);
+            throw new Error(genericMsg);
+        }
+    };
+
+    const handleDeleteUser = async () => {
+        if (!selectedUser) return;
+
+        try {
+            setIsDeleting(true);
+            const response = await fetch(`${API_URL}/users/${selectedUser.id}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                setUsers(users.filter(u => u.id !== selectedUser.id));
+                toast.success(`User ${selectedUser.firstName} deleted successfully`);
+                setShowDeleteDialog(false);
+            } else {
+                toast.error("Failed to delete user");
+            }
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            toast.error("An error occurred while deleting the user");
+        } finally {
+            setIsDeleting(false);
+            setSelectedUser(null);
+        }
+    };
+
+    const getUserCompany = (userId: any) => {
+        return companies.find(c => String(c.userId) === String(userId));
+    };
+
+    const filteredUsers = users.filter(user => {
+        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+        const userCompany = getUserCompany(user.id);
+        const companyName = userCompany?.name?.toLowerCase() || "";
+
+        const matchesSearch =
+            fullName.includes(searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            companyName.includes(searchQuery.toLowerCase());
+
+        const matchesRole = roleFilter === "all" || user.role === roleFilter;
+        const userStatus = user.isActive ? "active" : "inactive";
+        const matchesStatus = statusFilter === "all" || userStatus === statusFilter;
+
+        return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    const openUserModal = (mode: "create" | "edit" | "view", user: any = null) => {
+        setModalMode(mode);
+        setSelectedUser(user);
+        setShowUserModal(true);
+    };
+
+    return (
+        <div className="h-full bg-white">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Super Admin Console</h1>
+                        <p className="text-sm text-muted-foreground mt-0.5">Global user management and company associations</p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            localStorage.removeItem("isSuperAdminAuthenticated");
+                            navigate("/");
+                            toast.success("Super Admin session ended");
+                        }}
+                        className="rounded-xl border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-100 gap-2 font-medium"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                    </Button>
+                </div>
+
+                {/* Filters Row */}
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by name, email or company..."
+                            className="pl-11 h-12 rounded-2xl border-slate-200 bg-white shadow-sm hover:border-slate-300 focus-visible:ring-1 focus-visible:ring-[#213847]/40 w-full"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-4">
+                        <Select value={roleFilter} onValueChange={setRoleFilter}>
+                            <SelectTrigger className="w-[180px] h-12 rounded-2xl border-slate-200 bg-white shadow-sm hover:border-slate-300 focus:ring-[#213847]/40">
+                                <SelectValue placeholder="All Roles" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                <SelectItem value="all" className="rounded-lg cursor-pointer">All Roles</SelectItem>
+                                <SelectItem value="auditor" className="rounded-lg cursor-pointer">Auditor</SelectItem>
+                                <SelectItem value="auditee" className="rounded-lg cursor-pointer">Auditee</SelectItem>
+                                <SelectItem value="other" className="rounded-lg cursor-pointer">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-[180px] h-12 rounded-2xl border-slate-200 bg-white shadow-sm hover:border-slate-300 focus:ring-[#213847]/40">
+                                <SelectValue placeholder="All Status" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                <SelectItem value="all" className="rounded-lg cursor-pointer">All Status</SelectItem>
+                                <SelectItem value="active" className="rounded-lg cursor-pointer">Active</SelectItem>
+                                <SelectItem value="inactive" className="rounded-lg cursor-pointer">Inactive</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                {/* Main Content Card */}
+                <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-[#213847] hover:bg-[#213847] border-none">
+                                <TableHead className="w-[80px] text-white pl-6">SL No.</TableHead>
+                                <TableHead className="text-white">User Details</TableHead>
+                                <TableHead className="text-white">Role</TableHead>
+                                <TableHead className="text-white">Company Created</TableHead>
+                                <TableHead className="text-white">Status</TableHead>
+                                <TableHead className="text-right text-white pr-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                                        Loading users...
+                                    </TableCell>
+                                </TableRow>
+                            ) : paginatedUsers.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-64 text-center">
+                                        <div className="flex flex-col items-center justify-center py-10">
+                                            <UserIcon className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                                            <p className="text-sm text-muted-foreground">No users found</p>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                paginatedUsers.map((user, index) => {
+                                    const company = getUserCompany(user.id);
+                                    return (
+                                        <TableRow key={user.id} className="group hover:bg-muted/50 transition-colors">
+                                            <TableCell className="pl-6 font-medium text-muted-foreground/60">
+                                                {(currentPage - 1) * itemsPerPage + index + 1}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-sm text-[#213847]">{user.firstName} {user.lastName}</span>
+                                                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                                        <Mail className="h-3 w-3" /> {user.email}
+                                                    </span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="font-medium capitalize py-0 px-2 h-6 flex w-fit items-center gap-1 border-slate-200">
+                                                    <Shield className="h-3 w-3 text-slate-500" />
+                                                    {user.role === "other" ? user.customRoleName : user.role}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {company ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1.5 rounded-lg bg-blue-50 border border-blue-100">
+                                                            <Building2 className="h-3.5 w-3.5 text-blue-600" />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-semibold text-slate-700">{company.name}</span>
+                                                            <span className="text-[10px] text-slate-400">{company.industry || "General"}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground italic">No company created</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={user.isActive ? "default" : "outline"}
+                                                    className={user.isActive
+                                                        ? "bg-[#e6f7e9] hover:bg-[#d4f2da] text-[#22a04c] border-none px-4 py-1 rounded-full shadow-none font-semibold text-[11px]"
+                                                        : "bg-slate-50 text-slate-400 px-4 py-1 rounded-full font-medium text-[11px] border-slate-200"}
+                                                >
+                                                    {user.isActive ? "ACTIVE" : "INACTIVE"}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-slate-100">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-lg border-slate-200">
+                                                        <DropdownMenuLabel className="text-xs font-bold text-slate-400 uppercase tracking-widest px-3">Actions</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => openUserModal("view", user)} className="cursor-pointer gap-2 rounded-lg m-1">
+                                                            <Eye className="h-4 w-4 text-slate-500" /> View Profile
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleToggleStatus(user)}
+                                                            className={cn(
+                                                                "cursor-pointer gap-2 rounded-lg m-1 font-medium",
+                                                                user.isActive ? "text-orange-600 hover:text-orange-700" : "text-emerald-600 hover:text-emerald-700"
+                                                            )}
+                                                        >
+                                                            {user.isActive ? (
+                                                                <>
+                                                                    <UserMinus className="h-4 w-4" /> Deactivate Account
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <UserCheck className="h-4 w-4" /> Activate Account
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() => {
+                                                                setSelectedUser(user);
+                                                                setShowDeleteDialog(true);
+                                                            }}
+                                                            className="cursor-pointer gap-2 rounded-lg m-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" /> Delete User
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Pagination */}
+                {!isLoading && (
+                    <ReusablePagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={filteredUsers.length}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
+            </div>
+
+            <UserModal
+                open={showUserModal}
+                onClose={() => {
+                    setShowUserModal(false);
+                    setSelectedUser(null);
+                }}
                 onSubmit={handleAddUser}
                 mode={modalMode}
                 initialData={selectedUser}

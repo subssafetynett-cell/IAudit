@@ -15,7 +15,6 @@ import {
   Info,
   TrendingUp,
   Activity,
-  FileText
   FileText,
   Briefcase, 
   Rocket, 
@@ -31,26 +30,24 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { Clipboard, Clock } from "lucide-react";
-import TrialModal from "@/components/TrialModal";
-import TrialBanner from "@/components/TrialBanner";
-
-const Index = () => {
-  const { companies } = useCompanyStore();
 import CompanyModal from "@/components/CompanyModal";
 import SiteModal from "@/components/SiteModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import TrialModal from "@/components/TrialModal";
+import TrialBanner from "@/components/TrialBanner";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const { companies, isLoading, addCompany, addSite } = useCompanyStore();
-  const [users, setUsers] = useState<any[]>([]);
-  const [auditPlans, setAuditPlans] = useState<any[]>([]);
-  const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selfAssessments, setSelfAssessments] = useState<any[]>([]);
-  const [gapAnalyses, setGapAnalyses] = useState<any[]>([]);
+    const navigate = useNavigate();
+    const { companies, isLoading, addCompany, addSite } = useCompanyStore();
+    const [users, setUsers] = useState<any[]>([]);
+    const [auditPlans, setAuditPlans] = useState<any[]>([]);
+    const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selfAssessments, setSelfAssessments] = useState<any[]>([]);
+    const [gapAnalyses, setGapAnalyses] = useState<any[]>([]);
+    const [showTrialModal, setShowTrialModal] = useState(false);
+    const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Onboarding state
   const [showWelcome, setShowWelcome] = useState(false);
@@ -66,12 +63,22 @@ const Index = () => {
     if (!isLoading && companies.length === 0) {
       setShowWelcome(true);
       setOnboardingStep(1);
-    } else if (!isLoading && companies.length > 0 && totalSites === 0) {
-      // If company exists but no sites, we might be in step 2
-      // Only show if we haven't finished onboarding or explicitly triggered it
-      // For simplicity, let's just use the length checks
     }
   }, [isLoading, companies.length, totalSites]);
+
+  useEffect(() => {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      setCurrentUser(user);
+      
+      // Show trial modal if trial hasn't started and user is on trial tier
+      if (user.subscriptionStatus === 'trial' && !user.trialEndDate && !localStorage.getItem('trial_modal_seen')) {
+        setShowTrialModal(true);
+        localStorage.setItem('trial_modal_seen', 'true');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -246,22 +253,6 @@ const Index = () => {
 
   const stats = [
     {
-      label: "Self Assessments",
-      value: selfAssessments.length,
-      icon: ShieldCheck,
-      trend: "+22%",
-      trendColor: "text-emerald-500 bg-emerald-50",
-      iconColor: "text-emerald-600 bg-emerald-50"
-    },
-    {
-      label: "Gap Analyses",
-      value: gapAnalyses.length,
-      icon: Search,
-      trend: "+10%",
-      trendColor: "text-emerald-500 bg-emerald-50",
-      iconColor: "text-emerald-600 bg-emerald-50"
-    },
-    {
       label: "Companies",
       value: companies.length,
       icon: Building2,
@@ -274,6 +265,22 @@ const Index = () => {
       value: totalSites,
       icon: MapPin,
       trend: "+5%",
+      trendColor: "text-emerald-500 bg-emerald-50",
+      iconColor: "text-emerald-600 bg-emerald-50"
+    },
+    {
+      label: "Gap Analyses",
+      value: gapAnalyses.length,
+      icon: Search,
+      trend: "+10%",
+      trendColor: "text-emerald-500 bg-emerald-50",
+      iconColor: "text-emerald-600 bg-emerald-50"
+    },
+    {
+      label: "Self Assessments",
+      value: selfAssessments.length,
+      icon: ShieldCheck,
+      trend: "+22%",
       trendColor: "text-emerald-500 bg-emerald-50",
       iconColor: "text-emerald-600 bg-emerald-50"
     },
@@ -324,6 +331,32 @@ const Index = () => {
     };
   });
 
+    const handleStartTrial = async () => {
+        if (!currentUser) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/users/${currentUser.id}/start-trial`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (response.ok) {
+                const updatedUser = await response.json();
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setCurrentUser(updatedUser);
+                setShowTrialModal(false);
+                toast.success("Welcome! Your 14-day free trial has started.");
+            } else {
+                toast.error("Failed to start trial. Please try again.");
+            }
+        } catch (error) {
+            console.error("Trial start error:", error);
+            toast.error("A connection error occurred.");
+        }
+    };
+
+    const handleSubscribe = () => {
+        navigate("/subscription");
+    };
+
   // Calculate dynamic max for Y-axis scaling
   const maxVal = trendData.reduce((max, d) => Math.max(max, d.scheduled, d.completed), 0);
   const chartMax = Math.max(8, Math.ceil(maxVal / 2) * 2 + 2);
@@ -342,12 +375,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-transparent px-6 py-6">
-      <TrialModal 
-        isOpen={showTrialModal} 
-        onStartTrial={handleStartTrial} 
-        onSubscribe={handleSubscribe} 
-      />
-      
+        <TrialModal 
+            isOpen={showTrialModal} 
+            onStartTrial={handleStartTrial} 
+            onSubscribe={handleSubscribe} 
+        />
       <div className="max-w-[1600px] mx-auto space-y-6">
         <TrialBanner 
           subscriptionStatus={currentUser?.subscriptionStatus} 
@@ -779,7 +811,6 @@ const Index = () => {
         </div>
       </div>
 
-
       {/* Onboarding Modals */}
       <Dialog open={showWelcome} onOpenChange={(open) => {
         if (!open && companies.length === 0) return;
@@ -913,7 +944,6 @@ const Index = () => {
           }
         }}
       />
->>>>>>> 3117fa02218f205071b01947d5095a3644056d96
     </div>
   );
 };

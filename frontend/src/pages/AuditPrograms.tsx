@@ -1,5 +1,53 @@
 import React, { useState, useEffect } from "react";
-\n    const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { TopNav } from "@/components/TopNav";
+import { API_BASE_URL } from "@/config";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar, Check, ChevronDown, Plus, Save, Edit, Trash2, Eye, ArrowLeft, MoreHorizontal, Search, Star, FileText, Download } from "lucide-react";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Document, Packer, Paragraph, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, WidthType, TextRun, HeadingLevel, AlignmentType, BorderStyle, ImageRun, Header } from 'docx';
+import { saveAs } from 'file-saver';
+import logoImg from "@/assets/logo.png";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import ReusablePagination from "@/components/ReusablePagination";
+
+const ISO_STANDARDS = [
+    "ISO 9001:2015 - Quality Management System",
+    "ISO 14001:2015 - Environmental Management System",
+    "ISO 45001:2018 - Occupational Health and Safety",
+];
+
+const FREQUENCIES = ["Monthly", "Quarterly", "Bi-annually", "Annually"];
+
+import { CLAUSE_MATRIX, ClauseMatrixRow } from "@/data/clauseMapping";
+
+const AuditPrograms = () => {
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [view, setView] = useState<"list" | "create" | "edit" | "view">("list");
+    const [showOnboardingGuide, setShowOnboardingGuide] = useState(searchParams.get("onboarding") === "true");
+    const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+    const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [showSchedule, setShowSchedule] = useState(false);
@@ -12,7 +60,148 @@ import React, { useState, useEffect } from "react";
     const [standardFilter, setStandardFilter] = useState("all");
     const [siteFilter, setSiteFilter] = useState("all");
 
-\n        const key = `${row}-${col}`;
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    const isMobile = windowWidth < 768;
+
+    // Form state
+    const [currentId, setCurrentId] = useState<number | null>(null);
+    const [auditName, setAuditName] = useState("");
+    const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
+    const [frequency, setFrequency] = useState("Bi-annually");
+    const [duration, setDuration] = useState(3);
+    const [selectedSite, setSelectedSite] = useState("");
+    const [selectedAuditors, setSelectedAuditors] = useState<string[]>([]);
+    const [leadAuditorId, setLeadAuditorId] = useState<string | null>(null);
+    const [selectedCells, setSelectedCells] = useState<Record<string, boolean>>({});
+    const [customRows, setCustomRows] = useState<{ id: string, text: string }[]>([]);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const [sitesRes, usersRes, programsRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/sites?userId=${user.id}`),
+                    fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
+                    fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
+                ]);
+                const sitesData = sitesRes.ok ? await sitesRes.json() : [];
+                let usersData = usersRes.ok ? await usersRes.json() : [];
+                const programsData = programsRes.ok ? await programsRes.json() : [];
+
+                if (user && user.id) {
+                    if (Array.isArray(usersData)) {
+                        if (!usersData.some((u: any) => u.id === user.id)) {
+                            usersData.unshift(user);
+                        }
+                    } else {
+                        usersData = [user];
+                    }
+                }
+
+                setSites(Array.isArray(sitesData) ? sitesData : []);
+                setAuditors(Array.isArray(usersData) ? usersData : []);
+                setAuditPrograms(Array.isArray(programsData) ? programsData : []);
+
+                if (!sitesRes.ok || !usersRes.ok || !programsRes.ok) {
+                    toast.error("Some data failed to load from server");
+                }
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                toast.error("Failed to load data from server");
+            }
+        };
+        fetchData();
+    }, []);
+
+    const fetchPrograms = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const res = await fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAuditPrograms(Array.isArray(data) ? data : []);
+            } else {
+                toast.error("Failed to refresh audit programs");
+                setAuditPrograms([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch programs:", error);
+        }
+    };
+
+    const filteredAuditPrograms = (Array.isArray(auditPrograms) ? auditPrograms : []).filter(program => {
+        const matchesSearch = program.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStandard = standardFilter === "all" || program.isoStandard === standardFilter;
+        const matchesSite = siteFilter === "all" || program.siteId?.toString() === siteFilter;
+        return matchesSearch && matchesStandard && matchesSite;
+    });
+
+    const totalPages = Math.ceil(filteredAuditPrograms.length / itemsPerPage);
+    const paginatedPrograms = filteredAuditPrograms.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    // Reset page to 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, standardFilter, siteFilter]);
+
+    // Dynamic period generation based on duration and frequency
+    const calculatePeriods = (frequencyVal = frequency, durationVal = duration) => {
+        const count = frequencyVal === "Monthly" ? durationVal * 12 :
+            frequencyVal === "Quarterly" ? durationVal * 4 :
+                frequencyVal === "Bi-annually" ? durationVal * 2 :
+                    durationVal; // Annually
+
+        const result = [];
+        const currentDate = new Date(2026, 0, 1); // Start from Jan 2026
+
+        for (let i = 0; i < count; i++) {
+            const monthLabel = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
+            const yearLabel = currentDate.getFullYear().toString();
+            result.push({
+                label: `${monthLabel} ${yearLabel}`
+            });
+
+            if (frequencyVal === "Monthly") currentDate.setMonth(currentDate.getMonth() + 1);
+            else if (frequencyVal === "Quarterly") currentDate.setMonth(currentDate.getMonth() + 3);
+            else if (frequencyVal === "Bi-annually") currentDate.setMonth(currentDate.getMonth() + 6);
+            else currentDate.setFullYear(currentDate.getFullYear() + 1);
+        }
+        return result;
+    };
+
+    const periods = calculatePeriods();
+
+    const isPeriodActive = (colIndex: number) => {
+        return Object.keys(selectedCells).some(key => {
+            const parts = key.split("-");
+            return parts[1] === colIndex.toString() && selectedCells[key];
+        });
+    };
+
+    const handleGenerateSchedule = () => {
+        if (!auditName || selectedStandards.length === 0 || !selectedSite) {
+            toast.error("Please fill in Audit Name, Standard(s) and Site");
+            return;
+        }
+        setShowSchedule(true);
+        toast.success("Schedule updated!");
+    };
+
+    const toggleCell = (row: number | string, col: number) => {
+        if (view === "view") return;
+        const key = `${row}-${col}`;
         setSelectedCells(prev => ({
             ...prev,
             [key]: !prev[key]
@@ -299,7 +488,9 @@ import React, { useState, useEffect } from "react";
 
                 if (clause.isHeading) {
                     row.push({
-\n                    });
+                        content: isSelected ? "X" : "",
+                        styles: { fillColor: [33, 56, 71], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' }
+                    });
                 } else {
                     row.push(isSelected ? "X" : "");
                 }
@@ -449,7 +640,8 @@ import React, { useState, useEffect } from "react";
 
                 if (clause.isHeading) {
                     cells.push(new DocxTableCell({
-\n                        shading: { fill: "213847" }
+                        children: [new Paragraph({ text: isSelected ? "X" : "", alignment: AlignmentType.CENTER, children: [new TextRun({ text: isSelected ? "X" : "", color: "FFFFFF", bold: true })] })],
+                        shading: { fill: "213847" }
                     }));
                 } else {
                     cells.push(new DocxTableCell({
@@ -529,7 +721,13 @@ import React, { useState, useEffect } from "react";
 
 
     return (
-\n            <div className="flex items-center justify-between">
+        <div className="flex-1 space-y-8 p-8 pt-6 min-h-screen bg-white relative">
+            {/* Background Overlay for Onboarding */}
+            {showOnboardingGuide && view === "list" && (
+                <div className="fixed inset-0 bg-slate-900/10 z-[40] transition-all duration-500" />
+            )}
+
+            <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight text-foreground">Audit Program</h2>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -537,7 +735,79 @@ import React, { useState, useEffect } from "react";
                     </p>
                 </div>
                 {view === "list" && (
-\n                )}
+                    <div className="relative">
+                        <div className={`relative ${showOnboardingGuide ? "z-[60]" : ""}`}>
+                            {showOnboardingGuide && (
+                                <div className="absolute inset-0 -m-1 rounded-2xl ring-[8px] ring-emerald-500/50 animate-pulse z-[-1]" />
+                            )}
+                            <Button
+                                onClick={() => {
+                                    resetForm();
+                                    setView("create");
+                                    setShowOnboardingGuide(false);
+                                }}
+                                className={`bg-[#213847] hover:bg-[#213847]/90 text-white gap-2 rounded-xl h-11 px-5 shadow-sm font-semibold transition-all duration-300 ${showOnboardingGuide ? 'relative z-[60] ring-[6px] ring-emerald-500 ring-offset-2 scale-105 shadow-2xl' : ''}`}
+                            >
+                                <Plus className="w-4 h-4" /> Create Audit Program
+                            </Button>
+                        </div>
+
+                        {/* Onboarding Guide Tooltip */}
+                        {showOnboardingGuide && (
+                            <>
+                                <div className="fixed inset-0 bg-slate-900/30 z-[50] animate-in fade-in duration-700" />
+                                <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:translate-y-0 md:absolute md:inset-auto md:top-full md:mt-4 md:right-0 z-[60] animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div className="bg-white border-0 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-5 md:p-6 w-full max-w-[720px] mx-auto md:mr-0 relative overflow-hidden group/modal">
+                                        <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
+                                        
+                                        <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                                                    <Calendar className="w-6 h-6 text-emerald-600" />
+                                                </div>
+                                                <h4 className="font-black text-xl text-slate-900 tracking-tight whitespace-nowrap">Step 6: Audit Program</h4>
+                                            </div>
+
+                                        <div className="space-y-4">
+                                            <p className="text-sm font-medium text-slate-600 leading-relaxed px-1">
+                                                To conduct audits in line with ISO requirements, you need to create an Audit Program.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2">
+                                            <Button 
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl px-4 flex items-center gap-2 font-bold transition-colors"
+                                                onClick={() => {
+                                                    setShowOnboardingGuide(false);
+                                                    navigate("/gap-analysis?onboarding=true");
+                                                }}
+                                            >
+                                                <ArrowLeft className="w-4 h-4" /> Back
+                                            </Button>
+                                            <Button 
+                                                size="sm"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95 py-6 text-base"
+                                                onClick={() => {
+                                                    setShowOnboardingGuide(false);
+                                                    // Set completion flag
+                                                    localStorage.setItem('iaudit_onboarding_tour_completed', 'true');
+                                                    const newParams = new URLSearchParams(searchParams);
+                                                    newParams.delete("onboarding");
+                                                    setSearchParams(newParams);
+                                                }}
+                                            >
+                                                Done <Check className="ml-2 w-5 h-5" />
+                                            </Button>
+                                        </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
 
             {view === "list" ? (
@@ -979,12 +1249,19 @@ import React, { useState, useEffect } from "react";
                                             <tr>
                                                 {/* Dynamic Headers for Standards */}
                                                 {selectedStandards.map((std, colIdx) => {
-\n                                                    const leftOffset = colIdx * parseInt(colWidth);
+                                                    const baseWidth = selectedStandards.length === 1 ? 350 : 180;
+                                                    const colWidth = isMobile ? `${Math.min(baseWidth, 140)}px` : `${baseWidth}px`;
+                                                    const leftOffset = colIdx * parseInt(colWidth);
 
                                                     const label = std.includes("9001") ? "ISO 9001:2015" : std.includes("14001") ? "ISO 14001:2015" : std.includes("45001") ? "ISO 45001:2018" : "CLAUSE NAME";
                                                     return (
                                                         <th key={std}
-\n                                                        >
+                                                            className={cn(
+                                                                "bg-slate-100 h-10 px-4 text-[11px] font-black tracking-widest text-[#213847] border-b border-r border-slate-200 uppercase align-middle",
+                                                                !isMobile && "sticky z-20"
+                                                            )}
+                                                            style={{ left: !isMobile ? `${leftOffset}px` : undefined, width: colWidth, minWidth: colWidth, maxWidth: colWidth }}
+                                                        >
                                                             {label}
                                                         </th>
                                                     );
@@ -1017,7 +1294,9 @@ import React, { useState, useEffect } from "react";
                                                     <tr key={clause.id} className="group hover:bg-slate-50 transition-colors">
                                                         {/* Active Standard Columns */}
                                                         {selectedStandards.map((std, colIdx) => {
-\n                                                            const leftOffset = colIdx * parseInt(colWidth);
+                                                            const baseWidth = selectedStandards.length === 1 ? 350 : 180;
+                                                            const colWidth = isMobile ? `${Math.min(baseWidth, 140)}px` : `${baseWidth}px`;
+                                                            const leftOffset = colIdx * parseInt(colWidth);
 
                                                             const isIso9001 = std.includes("9001");
                                                             const isIso14001 = std.includes("14001");
@@ -1033,11 +1312,14 @@ import React, { useState, useEffect } from "react";
                                                             return (
                                                                 <td key={`${clause.id}-${std}`}
                                                                     className={cn(
-\n                                                                        clause.isHeading ? "bg-[#213847] text-white font-black uppercase tracking-wide border-[#213847]" : "font-semibold text-slate-600 bg-white group-hover:bg-slate-50",
+                                                                        "text-[11px] py-3 px-4 border-r border-b border-slate-200 transition-colors align-middle",
+                                                                        !isMobile && "sticky z-10",
+                                                                        clause.isHeading ? "bg-[#213847] text-white font-black uppercase tracking-wide border-[#213847]" : "font-semibold text-slate-600 bg-white group-hover:bg-slate-50",
                                                                         !clause.isHeading && colIdx === 0 && "pl-6",
                                                                         isMissing && !clause.isHeading && "italic text-slate-400 bg-slate-50 group-hover:bg-slate-100"
                                                                     )}
-\n                                                                >
+                                                                    style={{ left: !isMobile ? `${leftOffset}px` : undefined, width: colWidth, minWidth: colWidth, maxWidth: colWidth }}
+                                                                >
                                                                     {cellText}
                                                                 </td>
                                                             );
@@ -1047,7 +1329,29 @@ import React, { useState, useEffect } from "react";
                                                         {periods.map((_, colIndex) => {
                                                             const isChecked = selectedCells[`${rowIndex}-${colIndex}`];
                                                             return (
-\n                                                                            </div>
+                                                                <td key={`check-${colIndex}`} 
+                                                                    className={cn(
+                                                                        "p-1 border-b border-slate-100 align-middle",
+                                                                        clause.isHeading ? "bg-[#213847] border-[#213847]" : "bg-white"
+                                                                    )}
+                                                                >
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleCell(rowIndex, colIndex)}
+                                                                        disabled={view === "view"}
+                                                                        className={cn(
+                                                                            "w-full h-8 rounded-md border flex items-center justify-center transition-all duration-200",
+                                                                            isChecked
+                                                                                ? "bg-emerald-100/80 border-emerald-400 border-2 text-emerald-600 shadow-sm shadow-emerald-500/10 hover:bg-emerald-200/80 cursor-pointer"
+                                                                                : clause.isHeading
+                                                                                    ? "bg-white/5 border-white border-2 hover:border-emerald-400 hover:bg-emerald-50/20 cursor-pointer"
+                                                                                    : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 cursor-pointer hover:shadow-inner"
+                                                                        )}
+                                                                    >
+                                                                        {isChecked && (
+                                                                            <div className="animate-in zoom-in-75 duration-200">
+                                                                                <Check className={cn("w-4 h-4 stroke-[4px]", clause.isHeading && "text-emerald-500")} />
+                                                                            </div>
                                                                         )}
                                                                     </button>
                                                                 </td>
