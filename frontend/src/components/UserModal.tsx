@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 interface Props {
     open: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => void;
+    onSubmit: (data: any) => Promise<void>;
     mode?: "create" | "edit" | "view";
     initialData?: any;
 }
@@ -28,6 +28,7 @@ export default function UserModal({ open, onClose, onSubmit, mode = "create", in
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isViewMode = mode === "view";
     const isEditMode = mode === "edit";
@@ -61,12 +62,13 @@ export default function UserModal({ open, onClose, onSubmit, mode = "create", in
         }
     }, [open, mode, initialData, isEditMode, isViewMode]);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (isViewMode) {
             onClose();
             return;
         }
 
+        setError("");
         if (!firstName.trim() || !lastName.trim() || !email.trim()) {
             setError("Please fill in all required fields");
             return;
@@ -110,8 +112,16 @@ export default function UserModal({ open, onClose, onSubmit, mode = "create", in
             payload.password = password;
         }
 
-        onSubmit(payload);
-        onClose();
+        try {
+            setIsSubmitting(true);
+            await onSubmit(payload);
+            onClose(); // Only close on success
+        } catch (err: any) {
+            console.error("Submission error in modal:", err);
+            setError(err.message || "Failed to process request. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getTitle = () => {
@@ -308,8 +318,8 @@ export default function UserModal({ open, onClose, onSubmit, mode = "create", in
                         {isViewMode ? "Dismiss" : "Cancel"}
                     </Button>
                     {!isViewMode && (
-                        <Button onClick={handleSubmit}>
-                            {getSubmitLabel()}
+                        <Button onClick={handleSubmit} disabled={isSubmitting}>
+                            {isSubmitting ? "Processing..." : getSubmitLabel()}
                         </Button>
                     )}
                     {isViewMode && (

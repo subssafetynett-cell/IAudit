@@ -659,7 +659,7 @@ const AuditProgramPage = () => {
                                                                                             {clause.standard}
                                                                                         </span>
                                                                                     )}
-                                                                                    <span className="truncate">{clause.name}</span>
+                                                                                    <span className={cn("truncate", clause.isHeading && "font-black text-slate-800")}>{clause.name}</span>
                                                                                 </div>
                                                                             ))}
                                                                         </div>

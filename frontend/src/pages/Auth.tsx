@@ -37,103 +37,7 @@ export default function Auth() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [resendTimer, setResendTimer] = useState(0);
-
-    const containerRef = useRef<HTMLDivElement>(null);
-    const overlayRef = useRef<HTMLDivElement>(null);
-    const overlayContentRef = useRef<HTMLDivElement>(null);
-    const signupPaneRef = useRef<HTMLDivElement>(null);
-    const signinPaneRef = useRef<HTMLDivElement>(null);
-
-    const toggleMode = () => {
-        setIsSignUp(!isSignUp);
-        setShowOtpStep(false);
-        setErrorMessage("");
-    };
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (resendTimer > 0) {
-            interval = setTimeout(() => {
-                setResendTimer((prev) => prev - 1);
-            }, 1000);
-        }
-        return () => clearTimeout(interval);
-    }, [resendTimer]);
-
-    useEffect(() => {
-        const ctx = gsap.context(() => {
-            const tl = gsap.timeline({ defaults: { duration: 1.0, ease: "power3.inOut" } });
-
-            if (isSignUp) {
-                // Sign Up Mode: Overlay moves LEFT -> RIGHT
-                tl.to(overlayRef.current, { xPercent: 150 });
-                // Form Crossing: Sign Up Form slides from the RIGHT towards the left
-                tl.fromTo(signupPaneRef.current,
-                    { xPercent: 100, opacity: 0 },
-                    { xPercent: 0, opacity: 1, pointerEvents: "auto" }, 0
-                );
-                // Sign In Form slides out to the LEFT
-                tl.to(signinPaneRef.current, { xPercent: -100, opacity: 0, pointerEvents: "none" }, 0);
-            } else {
-                // Sign In Mode: Overlay moves RIGHT -> LEFT
-                tl.to(overlayRef.current, { xPercent: 0 });
-                // Form Crossing: Sign In Form slides from the LEFT towards the right
-                tl.fromTo(signinPaneRef.current,
-                    { xPercent: -100, opacity: 0 },
-                    { xPercent: 0, opacity: 1, pointerEvents: "auto" }, 0
-                );
-                // Sign Up Form slides out to the RIGHT
-                tl.to(signupPaneRef.current, { xPercent: 100, opacity: 0, pointerEvents: "none" }, 0);
-            }
-        }, containerRef);
-
-        return () => ctx.revert();
-    }, [isSignUp]);
-
-    const handleLoginSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!loginEmail || !loginPassword) {
-            setErrorMessage("Please enter both email and password.");
-            return;
-        }
-
-        setIsSubmitting(true);
-        setErrorMessage("");
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: loginEmail, password: loginPassword })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Login failed');
-            }
-
-            // Success! Save user to local storage and navigate to dashboard
-            localStorage.setItem('user', JSON.stringify(data));
-            navigate("/");
-
-        } catch (error: any) {
-            console.error('Login error:', error);
-            setErrorMessage(error.message || "Login failed. Please check your credentials and connection.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    // Step 1: Send OTP
-    const handleSignupSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Basic validation
-        if (signupPassword !== signupConfirmPassword) {
-            setErrorMessage("Passwords do not match");
-            return;
+\n            return;
         }
 
         setIsSubmitting(true);
@@ -268,36 +172,17 @@ export default function Auth() {
                                         <div className="space-y-1.5">
                                             <Label className="text-xs font-semibold text-[#4B5563]">First Name</Label>
                                             <Input
-                                                required
-                                                placeholder="John"
-                                                value={signupFirstName}
-                                                onChange={(e) => setSignupFirstName(e.target.value)}
-                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
-                                            />
-                                        </div>
+\n                                        </div>
                                         <div className="space-y-1.5">
                                             <Label className="text-xs font-semibold text-[#4B5563]">Last Name</Label>
                                             <Input
-                                                required
-                                                placeholder="Doe"
-                                                value={signupLastName}
-                                                onChange={(e) => setSignupLastName(e.target.value)}
-                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
-                                            />
-                                        </div>
+\n                                        </div>
                                     </div>
 
                                     <div className="space-y-1.5">
                                         <Label className="text-xs font-semibold text-[#4B5563]">Email Address</Label>
                                         <Input
-                                            required
-                                            type="email"
-                                            placeholder="john@example.com"
-                                            value={signupEmail}
-                                            onChange={(e) => setSignupEmail(e.target.value)}
-                                            className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
-                                        />
-                                    </div>
+\n                                    </div>
 
                                     <div className="space-y-1.5">
                                         <Label className="text-xs font-semibold text-[#4B5563]">Phone Number</Label>
@@ -305,43 +190,26 @@ export default function Auth() {
                                             type="tel"
                                             placeholder="+1 234 567 8900"
                                             value={signupPhone}
-                                            onChange={(e) => setSignupPhone(e.target.value)}
-                                            className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-[#00875B]"
-                                        />
-                                    </div>
+\n                                    </div>
 
                                     <div className="space-y-1.5">
                                         <Label className="text-xs font-semibold text-[#4B5563]">Password</Label>
                                         <div className="relative">
                                             <Input
-                                                required
-                                                type={showSignupPassword ? "text" : "password"}
-                                                placeholder="8+ characters"
-                                                value={signupPassword}
-                                                onChange={(e) => setSignupPassword(e.target.value)}
-                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B]"
-                                            />
+\n                                            />
                                             <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
                                                 {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </button>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold text-[#4B5563]">Confirm Password</Label>
-                                        <div className="relative">
-                                            <Input
-                                                required
-                                                type={showSignupConfirmPassword ? "text" : "password"}
-                                                placeholder="Confirm password"
-                                                value={signupConfirmPassword}
-                                                onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                                                className="h-11 bg-[#F9FAFB] border-[#E5E7EB] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] pr-10 focus:ring-1 focus:ring-[#00875B]"
-                                            />
+\n                                            />
                                             <button type="button" onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563]">
                                                 {showSignupConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </button>
                                         </div>
+<<<<<<< HEAD
+=======
+                                        {signupErrors.confirmPassword && <p className="text-[10px] text-red-500 mt-1 pl-1 font-medium">{signupErrors.confirmPassword}</p>}
+>>>>>>> 3117fa02218f205071b01947d5095a3644056d96
                                     </div>
 
                                     <Button disabled={isSubmitting} type="submit" className="w-full h-12 text-base font-bold bg-[#00875B] text-white hover:bg-[#006E4A] rounded-lg shadow-sm transition-all mt-4">

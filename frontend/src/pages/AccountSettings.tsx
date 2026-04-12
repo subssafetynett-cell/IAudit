@@ -145,7 +145,6 @@ export default function AccountSettings() {
             setIsLoading(false);
         }
     };
-
     if (!user) {
         return (
             <div className="flex-1 p-8 bg-white flex items-center justify-center min-h-[calc(100vh-5rem)]">
@@ -176,7 +175,7 @@ export default function AccountSettings() {
 
                             <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="newPassword" university-className="text-sm font-semibold text-[#475467] flex items-center gap-2">
+                                    <Label htmlFor="newPassword" className="text-sm font-semibold text-[#475467] flex items-center gap-2">
                                         <Lock className="w-4 h-4 text-[#98A2B3]" />
                                         New Password
                                     </Label>
@@ -193,7 +192,7 @@ export default function AccountSettings() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="confirmPassword" university-className="text-sm font-semibold text-[#475467] flex items-center gap-2">
+                                    <Label htmlFor="confirmPassword" className="text-sm font-semibold text-[#475467] flex items-center gap-2">
                                         <Lock className="w-4 h-4 text-[#98A2B3]" />
                                         Confirm New Password
                                     </Label>

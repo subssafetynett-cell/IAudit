@@ -85,7 +85,7 @@ model User {
   updatedAt         DateTime       @updatedAt
   isActive          Boolean        @default(true)
   creatorId         Int?
-  
+
   // Subscription and Trial fields
   trialStartDate    DateTime?
   trialEndDate      DateTime?
@@ -99,11 +99,12 @@ model User {
   stripePriceId      String?
   stripeInvoiceId    String?
   stripePaymentIntentId String?
-  
+
   // Renewal preferences
   renewalType       String?    // 'AUTOPAY' or 'MANUAL'
   autopayConsent    Boolean?   @default(false)
 
+  // Team/Audit relations
   leadAuditPlans    AuditPlan[]    @relation("PlanLeadAuditor")
   createdPlans      AuditPlan[]    @relation("UserAuditPlans")
   leadAuditPrograms AuditProgram[] @relation("LeadAuditor")
@@ -114,6 +115,8 @@ model User {
   createdUsers      User[]         @relation("UserCreator")
   auditPrograms     AuditProgram[] @relation("AuditorPrograms")
   auditPlans        AuditPlan[]    @relation("PlanAuditors")
+
+  // Payment relations
   subscriptions     Subscription[]
   payments          Payment[]
 }

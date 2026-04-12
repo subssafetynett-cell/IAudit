@@ -16,6 +16,12 @@ import {
   TrendingUp,
   Activity,
   FileText
+  FileText,
+  Briefcase, 
+  Rocket, 
+  Sparkles,
+  Clipboard, 
+  Clock
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,27 +37,46 @@ import TrialBanner from "@/components/TrialBanner";
 
 const Index = () => {
   const { companies } = useCompanyStore();
+import CompanyModal from "@/components/CompanyModal";
+import SiteModal from "@/components/SiteModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+const Index = () => {
+  const navigate = useNavigate();
+  const { companies, isLoading, addCompany, addSite } = useCompanyStore();
   const [users, setUsers] = useState<any[]>([]);
   const [auditPlans, setAuditPlans] = useState<any[]>([]);
   const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selfAssessments, setSelfAssessments] = useState<any[]>([]);
   const [gapAnalyses, setGapAnalyses] = useState<any[]>([]);
-  const [showTrialModal, setShowTrialModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const navigate = useNavigate();
+  
+  // Onboarding state
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showCreateCompany, setShowCreateCompany] = useState(false);
+  const [showCreateSite, setShowCreateSite] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<1 | 2>(1);
+
+  // Calculate Metrics
+  const totalSites = companies.reduce((acc, c) => acc + (c.sites?.length || 0), 0);
+  const totalDepts = companies.reduce((acc, c) => acc + (c.sites?.reduce((a, s) => a + (s.departments?.length || 0), 0) || 0), 0);
+
+  useEffect(() => {
+    if (!isLoading && companies.length === 0) {
+      setShowWelcome(true);
+      setOnboardingStep(1);
+    } else if (!isLoading && companies.length > 0 && totalSites === 0) {
+      // If company exists but no sites, we might be in step 2
+      // Only show if we haven't finished onboarding or explicitly triggered it
+      // For simplicity, let's just use the length checks
+    }
+  }, [isLoading, companies.length, totalSites]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        setCurrentUser(user);
-
-        // Check if user needs to select a trial/subscription
-        if (user.id && !user.subscriptionStatus) {
-          setShowTrialModal(true);
-        }
-
         const [usersRes, plansRes, programsRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`),
           fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`),
@@ -80,10 +105,6 @@ const Index = () => {
 
     fetchData();
   }, []);
-
-  // Calculate Metrics
-  const totalSites = companies.reduce((acc, c) => acc + (c.sites?.length || 0), 0);
-  const totalDepts = companies.reduce((acc, c) => acc + (c.sites?.reduce((a, s) => a + (s.departments?.length || 0), 0) || 0), 0);
 
   // Self Assessment Score distribution logic
   // High (>=76%): Score >= 38
@@ -302,32 +323,6 @@ const Index = () => {
       completed: auditsInMonth.filter(p => getProgress(p) === 100).length
     };
   });
-
-  const handleStartTrial = async () => {
-    if (!currentUser) return;
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${currentUser.id}/start-trial`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (response.ok) {
-        const updatedUser = await response.json();
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setCurrentUser(updatedUser);
-        setShowTrialModal(false);
-        toast.success("Welcome! Your 14-day free trial has started.");
-      } else {
-        toast.error("Failed to start trial. Please try again.");
-      }
-    } catch (error) {
-      console.error("Trial start error:", error);
-      toast.error("A connection error occurred.");
-    }
-  };
-
-  const handleSubscribe = () => {
-    navigate("/subscription");
-  };
 
   // Calculate dynamic max for Y-axis scaling
   const maxVal = trendData.reduce((max, d) => Math.max(max, d.scheduled, d.completed), 0);
@@ -783,6 +778,142 @@ const Index = () => {
           </Card>
         </div>
       </div>
+
+
+      {/* Onboarding Modals */}
+      <Dialog open={showWelcome} onOpenChange={(open) => {
+        if (!open && companies.length === 0) return;
+        setShowWelcome(open);
+      }}>
+        <DialogContent 
+          className="sm:max-w-md bg-white border-none shadow-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col"
+          onPointerDownOutside={(e) => { if (companies.length === 0 || (companies.length > 0 && totalSites === 0)) e.preventDefault(); }}
+          onEscapeKeyDown={(e) => { if (companies.length === 0 || (companies.length > 0 && totalSites === 0)) e.preventDefault(); }}
+        >
+          <div className="flex-1 overflow-y-auto w-full">
+          <div className="bg-[#213847] p-8 text-white flex flex-col items-center text-center space-y-4 relative">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="absolute top-4 right-4 text-white/40 hover:text-white hover:bg-white/10 rounded-lg text-[10px] font-bold uppercase tracking-wider h-7 px-2"
+              onClick={() => {
+                localStorage.removeItem('iaudit_onboarding_tour_completed');
+                toast.success("Onboarding tour reset!");
+                window.location.reload();
+              }}
+            >
+              Reset Tour
+            </Button>
+            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+              <Rocket className="w-8 h-8 text-emerald-400 animate-bounce" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight">Welcome to iAudit!</h2>
+              <p className="text-slate-300 text-sm max-w-[280px]">
+                {onboardingStep === 1 
+                  ? "We're excited to help you streamline your compliance management journey."
+                  : "Excellent! Your company is set up. Now let's define your operational structure."}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-6 bg-white">
+            <div className="space-y-4">
+              <div className={`flex gap-4 items-start translate-x-1 ${onboardingStep !== 1 ? 'opacity-50' : ''}`}>
+                <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${onboardingStep === 1 ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                  {onboardingStep > 1 ? (
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <Building2 className={`w-4 h-4 ${onboardingStep === 1 ? 'text-emerald-600' : 'text-slate-400'}`} />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-slate-900">Step 1: Create a Company</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    First you need to create a company by clicking the create company button.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`flex gap-4 items-start translate-x-1 ${onboardingStep !== 2 ? 'opacity-50' : ''}`}>
+                <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${onboardingStep === 2 ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                  <MapPin className={`w-4 h-4 ${onboardingStep === 2 ? 'text-emerald-600' : 'text-slate-400'}`} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-slate-900">Step 2: Add Sites & Departments</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Define your operational structure to track audits more effectively.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 group"
+              onClick={() => {
+                setShowWelcome(false);
+                if (onboardingStep === 1) {
+                  setShowCreateCompany(true);
+                } else {
+                  setShowCreateSite(true);
+                }
+              }}
+            >
+              {onboardingStep === 1 ? "Set Up My Company" : "Set Up My Site"}
+              <Sparkles className="ml-2 w-4 h-4 group-hover:rotate-12 transition-transform" />
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+      </Dialog>
+
+      <CompanyModal
+        open={showCreateCompany}
+        onClose={() => {
+          setShowCreateCompany(false);
+          if (companies.length === 0) {
+            setShowWelcome(true);
+          }
+        }}
+        mode="create"
+        hideCancel={companies.length === 0}
+        onSubmit={async (data) => {
+          const success = await addCompany(data);
+          if (success) {
+            setShowCreateCompany(false);
+            setOnboardingStep(2);
+            setShowWelcome(true); // Go back to welcome modal as requested
+            toast.success("Company created! Now let's add your first site.");
+          }
+        }}
+      />
+
+      <SiteModal
+        open={showCreateSite}
+        onClose={() => {
+          setShowCreateSite(false);
+          if (totalSites === 0) {
+            setShowWelcome(true);
+          }
+        }}
+        mode="create"
+        onSubmit={async (data) => {
+          if (companies.length > 0) {
+            const success = await addSite(companies[0].id, data);
+            if (success) {
+              setShowCreateSite(false);
+              toast.success("Perfect! Your first site has been added.");
+              
+              const isTourCompleted = localStorage.getItem('iaudit_onboarding_tour_completed') === 'true';
+              if (!isTourCompleted) {
+                // Transition to Step 3: Users page for user creation
+                setTimeout(() => navigate("/users?onboarding=true"), 1500);
+              }
+            }
+          }
+        }}
+      />
+>>>>>>> 3117fa02218f205071b01947d5095a3644056d96
     </div>
   );
 };

@@ -173,8 +173,7 @@ const CompaniesPage = () => {
           </Card>
 
           {/* 3. Stats Bar */}
-          <Card className="border-none shadow-sm mb-8 overflow-hidden rounded-xl bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-0">
+\n            <CardContent className="p-0">
               <div className="grid grid-cols-2 divide-x divide-slate-100">
                 <div className="py-6 px-10 text-center hover:bg-slate-50/50 transition-colors">
                   <p className="text-4xl font-extrabold text-slate-800 mb-1">{selectedCompany.sites.length}</p>
@@ -479,8 +478,7 @@ const CompaniesPage = () => {
 
         {/* Companies Table or Empty State */}
         {filteredCompanies.length === 0 && !searchQuery ? (
-          <div className="bg-white/40 backdrop-blur-sm rounded-[2rem] border-2 border-dashed border-slate-200 p-20 flex flex-col items-center justify-center text-center space-y-6">
-            <div className="w-24 h-24 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400">
+\n            <div className="w-24 h-24 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400">
               <Building2 className="w-12 h-12" />
             </div>
             <div className="space-y-2">

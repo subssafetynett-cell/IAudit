@@ -6,5 +6,5 @@ export const API_BASE_URL = isLocalhost
     : "https://api.iaudit.global";
 
 export const FRONTEND_URL = isLocalhost
-    ? "http://localhost:8080"
+    ? "http://localhost:5173"
     : "https://apps.iaudit.global";

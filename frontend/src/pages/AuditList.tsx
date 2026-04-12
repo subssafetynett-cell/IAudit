@@ -23,8 +23,7 @@ import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, ImageRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, WidthType, BorderStyle, AlignmentType, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
-import { auditTemplates, ChecklistContent } from "@/data/auditTemplates";
-import ReusablePagination from "@/components/ReusablePagination";
+\nimport ReusablePagination from "@/components/ReusablePagination";
 
 const AuditList = () => {
     const [auditPlans, setAuditPlans] = useState<any[]>([]);
@@ -78,147 +77,7 @@ const AuditList = () => {
         return typeof plan.auditData === 'string' ? JSON.parse(plan.auditData) : plan.auditData;
     };
 
-    const handleDownloadPDF = async (planStub: any) => {
-        setLoading(true);
-        try {
-            // Fetch full plan data to ensure we have itinerary, scope, etc.
-            const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planStub.id}`);
-            if (!res.ok) throw new Error("Failed to fetch full plan details");
-            const plan = await res.json();
-
-            const doc = new jsPDF();
-            const template = auditTemplates.find(t => t.id === plan.templateId);
-            const auditData = getAuditData(plan);
-            const fileName = `Audit_Plan_${plan.auditName?.replace(/[^a-z0-9]/gi, '_') || plan.id}`;
-            const MARGIN = 20;
-            const CONTENT_WIDTH = 210 - (2 * MARGIN);
-
-            // --- Logo - improved transparency handling ---
-            try {
-                const response = await fetch("/iAudit Global-01.png");
-                const blob = await response.blob();
-                const base64Compressed = await new Promise<string>((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const MAX = 120;
-                        const canvas = document.createElement("canvas");
-                        let { width, height } = img;
-                        if (width > MAX || height > MAX) {
-                            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-                            else { width = Math.round(width * MAX / height); height = MAX; }
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext("2d")!;
-                        ctx.clearRect(0, 0, width, height);
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL("image/png"));
-                    };
-                    img.onerror = reject;
-                    img.src = URL.createObjectURL(blob);
-                });
-                doc.addImage(base64Compressed, 'PNG', MARGIN, 10, 25, 25, undefined, 'FAST');
-            } catch (e) {
-                console.warn("Logo could not be loaded for PDF", e);
-            }
-
-            // --- Header banner ---
-            doc.setFillColor(33, 56, 71); // Dark blue theme matching the app
-            doc.rect(0, 40, 210, 15, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('AUDIT PLAN REPORT', MARGIN, 50);
-            doc.setFont('helvetica', 'normal');
-
-            // --- Plan metadata ---
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(10);
-            let y = 65;
-            const addRow = (label: string, value: string) => {
-                doc.setFont('helvetica', 'bold');
-                doc.text(label + ':', MARGIN, y);
-                doc.setFont('helvetica', 'normal');
-                const splitVal = doc.splitTextToSize(value || 'N/A', CONTENT_WIDTH - 55);
-                doc.text(splitVal, MARGIN + 55, y);
-                y += (splitVal.length * 6);
-            };
-
-            const addTwoLineField = (label: string, value: string) => {
-                doc.setFont('helvetica', 'bold');
-                doc.text(label + ':', MARGIN, y);
-                y += 6;
-                doc.setFont('helvetica', 'normal');
-                const lines = doc.splitTextToSize(value || 'N/A', CONTENT_WIDTH);
-                doc.text(lines, MARGIN, y);
-                y += (lines.length * 5) + 4;
-            };
-
-            addRow('Audit Name', plan.auditName || plan.auditType);
-            addRow('Template', template?.title || plan.templateId);
-            addRow('Date', plan.date ? new Date(plan.date).toLocaleDateString() : 'TBD');
-            addRow('Location', plan.location);
-            addRow('Lead Auditor', plan.leadAuditor ? `${plan.leadAuditor.firstName} ${plan.leadAuditor.lastName}` : '-');
-            addRow('Execution ID', plan.executionId || 'Standalone');
-            addRow('Criteria', plan.criteria);
-
-            y += 4;
-            addTwoLineField('Scope', plan.scope);
-            addTwoLineField('Objective', plan.objective);
-
-            y += 4;
-
-            // --- Audit Itinerary (New Table) ---
-            const itinerary = plan.itinerary ? (typeof plan.itinerary === 'string' ? JSON.parse(plan.itinerary) : plan.itinerary) : [];
-            if (Array.isArray(itinerary) && itinerary.length > 0) {
-                if (y > 250) { doc.addPage(); y = MARGIN; }
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(33, 56, 71);
-                doc.text('Audit Itinerary', MARGIN, y); y += 6;
-                autoTable(doc, {
-                    startY: y,
-                    head: [['Time', 'Activity', 'Auditee / Dept']],
-                    body: itinerary.map((item: any) => [`${item.startTime || ''} - ${item.endTime || ''}`, item.activity || '', item.auditee || '']),
-                    headStyles: { fillColor: [33, 56, 71], fontSize: 9 },
-                    bodyStyles: { fontSize: 8 },
-                    margin: { left: MARGIN, right: MARGIN },
-                    theme: 'grid'
-                });
-                y = (doc as any).lastAutoTable.finalY + 10;
-            }
-
-            // --- Executive Summary (If it exists in auditData) ---
-            if (auditData.executiveSummary) {
-                if (y > 250) { doc.addPage(); y = MARGIN; }
-                doc.setFillColor(241, 245, 249);
-                doc.rect(MARGIN, y, CONTENT_WIDTH, 8, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(33, 56, 71);
-                doc.text('Executive Summary', MARGIN + 2, y + 6);
-                y += 12;
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
-                const lines = doc.splitTextToSize(auditData.executiveSummary, CONTENT_WIDTH);
-                doc.text(lines, MARGIN, y);
-                y += lines.length * 5 + 8;
-            }
-
-            // --- Non-Conformances & OFIs (already in original code, keeps for completeness if data exists) ---
-            if (auditData.nonConformances?.some((nc: any) => nc.statement)) {
-                if (y > 230) { doc.addPage(); y = MARGIN; }
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(220, 38, 38);
-                doc.text('Identified Non-Conformances', MARGIN, y); y += 6;
-                autoTable(doc, {
-                    startY: y,
-                    head: [['ID', 'Clause', 'Statement', 'Due Date']],
-                    body: auditData.nonConformances.filter((nc: any) => nc.statement).map((nc: any) => [nc.id, nc.standardClause, nc.statement, nc.dueDate || '-']),
-                    headStyles: { fillColor: [220, 38, 38], fontSize: 8 },
-                    bodyStyles: { fontSize: 8 },
-                    margin: { left: MARGIN, right: MARGIN },
-                    theme: 'grid'
-                });
-                y = (doc as any).lastAutoTable.finalY + 8;
-            }
-
-            doc.save(`${fileName}.pdf`);
-            toast.success('PDF Downloaded');
+\n            toast.success('PDF Downloaded');
         } catch (error) {
             console.error(error);
             toast.error("Failed to generate PDF");
@@ -226,9 +85,7 @@ const AuditList = () => {
             setLoading(false);
         }
     };
-
-    const handleDownloadDocx = async (planStub: any) => {
-        setLoading(true);
+\n        setLoading(true);
         try {
             const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planStub.id}`);
             if (!res.ok) throw new Error("Failed to fetch full plan details");

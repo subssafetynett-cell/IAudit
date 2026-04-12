@@ -7,7 +7,7 @@ const API_URL = `${API_BASE_URL}/api`;
 let globalCompanies: Company[] = [];
 let listeners: Array<() => void> = [];
 let isInitialized = false;
-
+let globalLoading = true;
 let initializedUserId: string | null = null;
 
 function notify() {
@@ -61,10 +61,16 @@ export function useCompanyStore() {
           sites: c.sites || [],
           createdAt: new Date(c.createdAt),
         }));
+        globalLoading = false;
+        notify();
+      } else {
+        globalLoading = false;
         notify();
       }
     } catch (error) {
       console.error("Failed to fetch companies:", error);
+      globalLoading = false;
+      notify();
     }
   };
 
@@ -318,12 +324,13 @@ export function useCompanyStore() {
     addCompany,
     deleteCompany,
     addSite,
-    deleteSite,
     updateSite,
+    deleteSite,
     addDepartment,
     updateDepartment,
     deleteDepartment,
     updateCompany,
+    isLoading: globalLoading,
     getCompany: (id: string) => globalCompanies.find((c) => c.id === id),
   };
 }

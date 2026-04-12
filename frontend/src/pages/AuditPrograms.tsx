@@ -1,48 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { TopNav } from "@/components/TopNav";
-import { API_BASE_URL } from "@/config";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Check, ChevronDown, Plus, Save, Edit, Trash2, Eye, ArrowLeft, MoreHorizontal, Search, Star, FileText, Download } from "lucide-react";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Document, Packer, Paragraph, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, WidthType, TextRun, HeadingLevel, AlignmentType, BorderStyle, ImageRun, Header } from 'docx';
-import { saveAs } from 'file-saver';
-import logoImg from "@/assets/logo.png";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import ReusablePagination from "@/components/ReusablePagination";
-
-const ISO_STANDARDS = [
-    "ISO 9001:2015 - Quality Management System",
-    "ISO 14001:2015 - Environmental Management System",
-    "ISO 45001:2018 - Occupational Health and Safety",
-];
-
-const FREQUENCIES = ["Monthly", "Quarterly", "Bi-annually", "Annually"];
-
-import { CLAUSE_MATRIX, ClauseMatrixRow } from "@/data/clauseMapping";
-
-const AuditPrograms = () => {
-    const [view, setView] = useState<"list" | "create" | "edit" | "view">("list");
-    const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
+\n    const [auditPrograms, setAuditPrograms] = useState<any[]>([]);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [showSchedule, setShowSchedule] = useState(false);
@@ -55,140 +12,7 @@ const AuditPrograms = () => {
     const [standardFilter, setStandardFilter] = useState("all");
     const [siteFilter, setSiteFilter] = useState("all");
 
-    // Form state
-    const [currentId, setCurrentId] = useState<number | null>(null);
-    const [auditName, setAuditName] = useState("");
-    const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
-    const [frequency, setFrequency] = useState("Bi-annually");
-    const [duration, setDuration] = useState(3);
-    const [selectedSite, setSelectedSite] = useState("");
-    const [selectedAuditors, setSelectedAuditors] = useState<string[]>([]);
-    const [leadAuditorId, setLeadAuditorId] = useState<string | null>(null);
-    const [selectedCells, setSelectedCells] = useState<Record<string, boolean>>({});
-    const [customRows, setCustomRows] = useState<{ id: string, text: string }[]>([]);
-
-    // Pagination
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const [sitesRes, usersRes, programsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/sites?userId=${user.id}`),
-                    fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
-                    fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
-                ]);
-                const sitesData = sitesRes.ok ? await sitesRes.json() : [];
-                let usersData = usersRes.ok ? await usersRes.json() : [];
-                const programsData = programsRes.ok ? await programsRes.json() : [];
-
-                if (user && user.id) {
-                    if (Array.isArray(usersData)) {
-                        if (!usersData.some((u: any) => u.id === user.id)) {
-                            usersData.unshift(user);
-                        }
-                    } else {
-                        usersData = [user];
-                    }
-                }
-
-                setSites(Array.isArray(sitesData) ? sitesData : []);
-                setAuditors(Array.isArray(usersData) ? usersData : []);
-                setAuditPrograms(Array.isArray(programsData) ? programsData : []);
-
-                if (!sitesRes.ok || !usersRes.ok || !programsRes.ok) {
-                    toast.error("Some data failed to load from server");
-                }
-            } catch (error) {
-                console.error("Failed to fetch data:", error);
-                toast.error("Failed to load data from server");
-            }
-        };
-        fetchData();
-    }, []);
-
-    const fetchPrograms = async () => {
-        try {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const res = await fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`);
-            if (res.ok) {
-                const data = await res.json();
-                setAuditPrograms(Array.isArray(data) ? data : []);
-            } else {
-                toast.error("Failed to refresh audit programs");
-                setAuditPrograms([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch programs:", error);
-        }
-    };
-
-    const filteredAuditPrograms = (Array.isArray(auditPrograms) ? auditPrograms : []).filter(program => {
-        const matchesSearch = program.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStandard = standardFilter === "all" || program.isoStandard === standardFilter;
-        const matchesSite = siteFilter === "all" || program.siteId?.toString() === siteFilter;
-        return matchesSearch && matchesStandard && matchesSite;
-    });
-
-    const totalPages = Math.ceil(filteredAuditPrograms.length / itemsPerPage);
-    const paginatedPrograms = filteredAuditPrograms.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
-    // Reset page to 1 when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, standardFilter, siteFilter]);
-
-    // Dynamic period generation based on duration and frequency
-    const calculatePeriods = (frequencyVal = frequency, durationVal = duration) => {
-        const count = frequencyVal === "Monthly" ? durationVal * 12 :
-            frequencyVal === "Quarterly" ? durationVal * 4 :
-                frequencyVal === "Bi-annually" ? durationVal * 2 :
-                    durationVal; // Annually
-
-        const result = [];
-        const currentDate = new Date(2026, 0, 1); // Start from Jan 2026
-
-        for (let i = 0; i < count; i++) {
-            const monthLabel = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
-            const yearLabel = currentDate.getFullYear().toString();
-            result.push({
-                label: `${monthLabel} ${yearLabel}`
-            });
-
-            if (frequencyVal === "Monthly") currentDate.setMonth(currentDate.getMonth() + 1);
-            else if (frequencyVal === "Quarterly") currentDate.setMonth(currentDate.getMonth() + 3);
-            else if (frequencyVal === "Bi-annually") currentDate.setMonth(currentDate.getMonth() + 6);
-            else currentDate.setFullYear(currentDate.getFullYear() + 1);
-        }
-        return result;
-    };
-
-    const periods = calculatePeriods();
-
-    const isPeriodActive = (colIndex: number) => {
-        return Object.keys(selectedCells).some(key => {
-            const parts = key.split("-");
-            return parts[1] === colIndex.toString() && selectedCells[key];
-        });
-    };
-
-    const handleGenerateSchedule = () => {
-        if (!auditName || selectedStandards.length === 0 || !selectedSite) {
-            toast.error("Please fill in Audit Name, Standard(s) and Site");
-            return;
-        }
-        setShowSchedule(true);
-        toast.success("Schedule updated!");
-    };
-
-    const toggleCell = (row: number | string, col: number) => {
-        if (typeof row === 'number' && CLAUSE_MATRIX[row]?.isHeading || view === "view") return;
-        const key = `${row}-${col}`;
+\n        const key = `${row}-${col}`;
         setSelectedCells(prev => ({
             ...prev,
             [key]: !prev[key]
@@ -475,9 +299,7 @@ const AuditPrograms = () => {
 
                 if (clause.isHeading) {
                     row.push({
-                        content: "",
-                        styles: { fillColor: [33, 56, 71] }
-                    });
+\n                    });
                 } else {
                     row.push(isSelected ? "X" : "");
                 }
@@ -627,8 +449,7 @@ const AuditPrograms = () => {
 
                 if (clause.isHeading) {
                     cells.push(new DocxTableCell({
-                        children: [new Paragraph({ text: "" })],
-                        shading: { fill: "213847" }
+\n                        shading: { fill: "213847" }
                     }));
                 } else {
                     cells.push(new DocxTableCell({
@@ -708,8 +529,7 @@ const AuditPrograms = () => {
 
 
     return (
-        <div className="flex-1 space-y-8 p-8 pt-6 min-h-screen bg-white">
-            <div className="flex items-center justify-between">
+\n            <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight text-foreground">Audit Program</h2>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -717,13 +537,7 @@ const AuditPrograms = () => {
                     </p>
                 </div>
                 {view === "list" && (
-                    <Button
-                        onClick={() => { resetForm(); setView("create"); }}
-                        className="bg-[#213847] hover:bg-[#213847]/90 text-white gap-2 rounded-xl h-11 px-5 shadow-sm font-semibold"
-                    >
-                        <Plus className="w-4 h-4" /> Create Audit Program
-                    </Button>
-                )}
+\n                )}
             </div>
 
             {view === "list" ? (
@@ -1165,15 +979,12 @@ const AuditPrograms = () => {
                                             <tr>
                                                 {/* Dynamic Headers for Standards */}
                                                 {selectedStandards.map((std, colIdx) => {
-                                                    const colWidth = selectedStandards.length === 1 ? '350px' : '180px';
-                                                    const leftOffset = colIdx * parseInt(colWidth);
+\n                                                    const leftOffset = colIdx * parseInt(colWidth);
 
                                                     const label = std.includes("9001") ? "ISO 9001:2015" : std.includes("14001") ? "ISO 14001:2015" : std.includes("45001") ? "ISO 45001:2018" : "CLAUSE NAME";
                                                     return (
                                                         <th key={std}
-                                                            className="sticky z-20 bg-slate-100 h-10 px-4 text-[11px] font-black tracking-widest text-[#213847] border-b border-r border-slate-200 uppercase align-middle"
-                                                            style={{ left: `${leftOffset}px`, width: colWidth, minWidth: colWidth, maxWidth: colWidth }}
-                                                        >
+\n                                                        >
                                                             {label}
                                                         </th>
                                                     );
@@ -1206,8 +1017,7 @@ const AuditPrograms = () => {
                                                     <tr key={clause.id} className="group hover:bg-slate-50 transition-colors">
                                                         {/* Active Standard Columns */}
                                                         {selectedStandards.map((std, colIdx) => {
-                                                            const colWidth = selectedStandards.length === 1 ? '350px' : '180px';
-                                                            const leftOffset = colIdx * parseInt(colWidth);
+\n                                                            const leftOffset = colIdx * parseInt(colWidth);
 
                                                             const isIso9001 = std.includes("9001");
                                                             const isIso14001 = std.includes("14001");
@@ -1223,13 +1033,11 @@ const AuditPrograms = () => {
                                                             return (
                                                                 <td key={`${clause.id}-${std}`}
                                                                     className={cn(
-                                                                        "sticky z-10 text-[11px] py-3 px-4 border-r border-b border-slate-200 transition-colors align-middle",
-                                                                        clause.isHeading ? "bg-[#213847] text-white font-black uppercase tracking-wide border-[#213847]" : "font-semibold text-slate-600 bg-white group-hover:bg-slate-50",
+\n                                                                        clause.isHeading ? "bg-[#213847] text-white font-black uppercase tracking-wide border-[#213847]" : "font-semibold text-slate-600 bg-white group-hover:bg-slate-50",
                                                                         !clause.isHeading && colIdx === 0 && "pl-6",
                                                                         isMissing && !clause.isHeading && "italic text-slate-400 bg-slate-50 group-hover:bg-slate-100"
                                                                     )}
-                                                                    style={{ left: `${leftOffset}px`, width: colWidth, minWidth: colWidth, maxWidth: colWidth }}
-                                                                >
+\n                                                                >
                                                                     {cellText}
                                                                 </td>
                                                             );
@@ -1239,24 +1047,7 @@ const AuditPrograms = () => {
                                                         {periods.map((_, colIndex) => {
                                                             const isChecked = selectedCells[`${rowIndex}-${colIndex}`];
                                                             return (
-                                                                <td key={`check-${colIndex}`} className="p-1 border-b border-slate-100 align-middle">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => toggleCell(rowIndex, colIndex)}
-                                                                        disabled={clause.isHeading || view === "view"}
-                                                                        className={cn(
-                                                                            "w-full h-8 rounded-md border flex items-center justify-center transition-all duration-200",
-                                                                            clause.isHeading ? "bg-transparent border-transparent opacity-0 cursor-default" : (
-                                                                                isChecked
-                                                                                    ? "bg-emerald-100/80 border-emerald-400 text-emerald-600 shadow-sm shadow-emerald-500/10 hover:bg-emerald-200/80 cursor-pointer"
-                                                                                    : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 cursor-pointer hover:shadow-inner"
-                                                                            )
-                                                                        )}
-                                                                    >
-                                                                        {!clause.isHeading && isChecked && (
-                                                                            <div className="animate-in zoom-in-75 duration-200">
-                                                                                <Check className="w-4 h-4 stroke-[4px]" />
-                                                                            </div>
+\n                                                                            </div>
                                                                         )}
                                                                     </button>
                                                                 </td>

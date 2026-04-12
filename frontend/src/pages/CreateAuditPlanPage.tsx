@@ -426,17 +426,7 @@ const CreateAuditPlanPage = () => {
                                         </SelectTrigger>
                                         <SelectContent>
                                             {(() => {
-                                                const standards = program?.isoStandard ? program.isoStandard.split(',').map(s => s.trim()) : [];
-                                                const isMultiStandard = standards.length > 1;
-
-                                                const filtered = auditTemplates.filter(template =>
-                                                    !program?.isoStandard || standards.some(s => template.standard.includes(s) || s.includes(template.standard))
-                                                );
-
-                                                if (isMultiStandard) {
-                                                    // For multi-standard, we want exactly one of each type if possible,
-                                                    // but definitely the integrated one.
-                                                    const uniqueTypes = new Set();
+\n                                                    const uniqueTypes = new Set();
                                                     return filtered
                                                         .filter(t => {
                                                             if (t.isIntegrated) return true;
@@ -444,7 +434,10 @@ const CreateAuditPlanPage = () => {
                                                             uniqueTypes.add(t.type);
                                                             return true;
                                                         })
+<<<<<<< HEAD
                                                         .slice(0, 3) // Hard limit to 3 as requested
+=======
+>>>>>>> 3117fa02218f205071b01947d5095a3644056d96
                                                         .map(template => (
                                                             <SelectItem key={template.id} value={template.id}>
                                                                 {template.title} <span className="text-slate-400 text-xs ml-2">({template.standard})</span>
