@@ -123,8 +123,8 @@ function extractFindings(plan: any): Finding[] {
     };
 
     // ── clause-checklist (Integrated Checklist – clauseData) ──────────────────
-    let clauseData = safeParse(data.clauseData);
-    let editableChecklist = safeParse(data.editableChecklist);
+    const clauseData = safeParse(data.clauseData);
+    const editableChecklist = safeParse(data.editableChecklist);
 
     if (clauseData && typeof clauseData === "object") {
         const entries = Object.entries(clauseData);
@@ -163,7 +163,7 @@ function extractFindings(plan: any): Finding[] {
     }
 
     // ── checklist table (Standard Checklist – checklistData) ──────────────────
-    let checklistData = safeParse(data.checklistData);
+    const checklistData = safeParse(data.checklistData);
     if (checklistData && typeof checklistData === "object") {
         const entries = Object.entries(checklistData);
         console.log(`Plan #${plan.id}: Checking checklistData (${entries.length} entries)`);
@@ -210,7 +210,7 @@ function extractFindings(plan: any): Finding[] {
     }
 
     // ── extraChecklistItems ──────────────────────────────────────────────────
-    let extraItems = safeParse(data.extraChecklistItems);
+    const extraItems = safeParse(data.extraChecklistItems);
     if (extraItems && typeof extraItems === "object") {
         console.log(`Plan #${plan.id}: Checking extraChecklistItems`);
         Object.entries(extraItems).forEach(([clause, items]: any) => {
@@ -237,7 +237,7 @@ function extractFindings(plan: any): Finding[] {
     }
 
     // ── processAudits ────────────────────────────────────────────────────────
-    let processAudits = safeParse(data.processAudits);
+    const processAudits = safeParse(data.processAudits);
     if (processAudits && Array.isArray(processAudits)) {
         console.log(`Plan #${plan.id}: Checking processAudits (${processAudits.length} items)`);
         processAudits.forEach((audit: any, idx: number) => {

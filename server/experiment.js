@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 
 async function experiment() {
     const email = 'athulyadasofficial@gmail.com'; // Known working user
-    const password = 'Syndicate@005';
+    const password = process.env.TEST_PASSWORD || 'Placeholder@123';
     
     try {
         console.log(`Setting user ${email} to 'expired' for testing...`);
@@ -32,7 +32,7 @@ async function experiment() {
         
         // NOW: Fix Sidha's password to match the one user is using
         console.log(`Updating Sidha's password to 'Syndicate@005'...`);
-        const hashed = await bcrypt.hash('Syndicate@005', 10);
+        const hashed = await bcrypt.hash(process.env.TEST_PASSWORD || 'Placeholder@123', 10);
         await prisma.user.update({
             where: { email: 'sidhaasamad@gmail.com' },
             data: { password: hashed }

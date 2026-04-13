@@ -113,7 +113,7 @@ export default function Users() {
             const response = await fetch(`${API_URL}/users?creatorId=${user.id}`);
             if (response.ok) {
                 const responseData = await response.json();
-                let data = Array.isArray(responseData) ? responseData : [];
+                const data = Array.isArray(responseData) ? responseData : [];
 
                 // Add the currently logged in user to the list if they aren't already there
                 if (user && user.id) {

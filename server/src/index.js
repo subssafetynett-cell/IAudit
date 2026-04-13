@@ -61,7 +61,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         switch (event.type) {
             case 'checkout.session.completed': {
                 const session = event.data.object;
-                const userId = parseInt(session.metadata.userId);
+                const userId = Number.parseInt(session.metadata.userId);
 
                 // 1. Update Payment table
                 const duration = session.metadata?.duration || null;
@@ -110,17 +110,17 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                         console.error('Failed to retrieve sub for dates', e);
                     }
 
-                    if (!planStartDate || isNaN(planStartDate.getTime())) {
+                    if (!planStartDate || Number.isNaN(planStartDate.getTime())) {
                         console.error("Invalid planStartDate");
                         return;
                     }
 
-                    if (!planExpiryDate || isNaN(planExpiryDate.getTime())) {
+                    if (!planExpiryDate || Number.isNaN(planExpiryDate.getTime())) {
                         console.error("Invalid planExpiryDate");
                         return;
                     }
 
-                    if (!nextBillingDate || isNaN(nextBillingDate.getTime())) {
+                    if (!nextBillingDate || Number.isNaN(nextBillingDate.getTime())) {
                         console.error("Invalid nextBillingDate");
                         return;
                     }
@@ -221,7 +221,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                         ? new Date(stripeSub.current_period_end * 1000)
                         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-                    if (isNaN(periodStart.getTime()) || isNaN(periodEnd.getTime())) {
+                    if (Number.isNaN(periodStart.getTime()) || Number.isNaN(periodEnd.getTime())) {
                         console.error('Invalid subscription dates from Stripe:', {
                             current_period_start: stripeSub.current_period_start,
                             current_period_end: stripeSub.current_period_end
@@ -418,7 +418,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
             case 'customer.subscription.created':
             case 'customer.subscription.updated': {
                 const sub = event.data.object;
-                const userId = parseInt(sub.metadata.userId);
+                const userId = Number.parseInt(sub.metadata.userId);
 
                 await prisma.subscription.upsert({
                     where: { stripeSubscriptionId: sub.id },
@@ -453,7 +453,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
             case 'customer.subscription.deleted': {
                 const sub = event.data.object;
-                const userId = parseInt(sub.metadata.userId);
+                const userId = Number.parseInt(sub.metadata.userId);
 
                 await prisma.subscription.update({
                     where: { stripeSubscriptionId: sub.id },
@@ -696,7 +696,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                     const failedSub = await stripe.subscriptions.retrieve(invoice.subscription);
                     if (failedSub.metadata?.userId) {
                         await prisma.user.update({
-                            where: { id: parseInt(failedSub.metadata.userId) },
+                            where: { id: Number.parseInt(failedSub.metadata.userId) },
                             data: { subscriptionStatus: 'past_due' }
                         });
                     }
@@ -754,8 +754,8 @@ const checkTrialExpiration = async (req, res, next) => {
     }
 
     try {
-        const parsedUserId = parseInt(userId);
-        if (isNaN(parsedUserId)) return next();
+        const parsedUserId = Number.parseInt(userId);
+        if (Number.isNaN(parsedUserId)) return next();
 
         const user = await prisma.user.findUnique({
             where: { id: parsedUserId },
@@ -816,7 +816,7 @@ const router = express.Router();
 // Email Transporter Configuration
 const transporterConfig = process.env.SMTP_HOST ? {
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
+    port: Number.parseInt(process.env.SMTP_PORT || '587'),
     secure: process.env.SMTP_PORT === '465',
     auth: {
         user: process.env.SMTP_USER,
@@ -901,8 +901,8 @@ app.get('/api/companies', checkTrialExpiration, async (req, res) => {
             console.warn(`[SECURITY] GET /api/companies called without valid userId. Returning empty list.`);
             return res.json([]);
         }
-        const parsedUserId = parseInt(userId);
-        if (isNaN(parsedUserId)) {
+        const parsedUserId = Number.parseInt(userId);
+        if (Number.isNaN(parsedUserId)) {
             return res.json([]);
         }
 
@@ -950,14 +950,14 @@ app.post('/api/companies/:companyId/sites', checkTrialExpiration, async (req, re
                 state,
                 country,
                 postalCode,
-                latitude: latitude != null && String(latitude).trim() !== '' && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : null,
-                longitude: longitude != null && String(longitude).trim() !== '' && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : null,
+                latitude: latitude != null && String(latitude).trim() !== '' && !Number.isNaN(parseFloat(latitude)) ? parseFloat(latitude) : null,
+                longitude: longitude != null && String(longitude).trim() !== '' && !Number.isNaN(parseFloat(longitude)) ? parseFloat(longitude) : null,
                 contactName,
                 contactPosition,
                 contactNumber,
                 email,
-                companyId: parseInt(companyId),
-                userId: userId ? parseInt(userId) : null
+                companyId: Number.parseInt(companyId),
+                userId: userId ? Number.parseInt(userId) : null
             }
         });
         res.status(201).json(site);
@@ -977,8 +977,8 @@ app.get('/api/sites', checkTrialExpiration, async (req, res) => {
     }
 
     try {
-        const parsedUserId = parseInt(userId);
-        if (isNaN(parsedUserId)) {
+        const parsedUserId = Number.parseInt(userId);
+        if (Number.isNaN(parsedUserId)) {
             return res.json([]);
         }
 
@@ -1006,7 +1006,7 @@ app.put('/api/sites/:id', checkTrialExpiration, async (req, res) => {
     } = req.body;
     try {
         const site = await prisma.site.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: {
                 name,
                 description,
@@ -1017,8 +1017,8 @@ app.put('/api/sites/:id', checkTrialExpiration, async (req, res) => {
                 state,
                 country,
                 postalCode,
-                latitude: latitude != null && String(latitude).trim() !== '' && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : null,
-                longitude: longitude != null && String(longitude).trim() !== '' && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : null,
+                latitude: latitude != null && String(latitude).trim() !== '' && !Number.isNaN(parseFloat(latitude)) ? parseFloat(latitude) : null,
+                longitude: longitude != null && String(longitude).trim() !== '' && !Number.isNaN(parseFloat(longitude)) ? parseFloat(longitude) : null,
                 contactName,
                 contactPosition,
                 contactNumber,
@@ -1037,7 +1037,7 @@ app.delete('/api/sites/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.site.delete({
-            where: { id: parseInt(id) }
+            where: { id: Number.parseInt(id) }
         });
         res.status(204).send();
     } catch (error) {
@@ -1058,7 +1058,7 @@ app.post('/api/sites/:siteId/departments', checkTrialExpiration, async (req, res
                 status: status || 'Active',
                 manager,
                 description,
-                siteId: parseInt(siteId)
+                siteId: Number.parseInt(siteId)
             }
         });
         res.status(201).json(department);
@@ -1074,7 +1074,7 @@ app.put('/api/departments/:id', checkTrialExpiration, async (req, res) => {
     const { name, code, status, manager, description } = req.body;
     try {
         const department = await prisma.department.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: { name, code, status, manager, description }
         });
         res.json(department);
@@ -1089,7 +1089,7 @@ app.delete('/api/departments/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.department.delete({
-            where: { id: parseInt(id) }
+            where: { id: Number.parseInt(id) }
         });
         res.status(204).send();
     } catch (error) {
@@ -1106,7 +1106,7 @@ app.post('/api/companies', checkTrialExpiration, async (req, res) => {
         state, country, postalCode, standards, userId
     } = req.body;
     try {
-        const parsedUserId = userId ? parseInt(userId) : null;
+        const parsedUserId = userId ? Number.parseInt(userId) : null;
 
         // Enforce One Company Per User Rule
         if (parsedUserId) {
@@ -1154,7 +1154,7 @@ app.put('/api/companies/:id', checkTrialExpiration, async (req, res) => {
     } = req.body;
     try {
         const company = await prisma.company.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: {
                 name,
                 industry,
@@ -1183,7 +1183,7 @@ app.delete('/api/companies/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.company.delete({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
         });
         res.status(204).send();
     } catch (error) {
@@ -1206,7 +1206,7 @@ const sendOtpLogic = async (req, res) => {
 
     let step = 'Lookup existing user';
     try {
-        console.log(`[AUTH] Signup attempt for email: ${email}`);
+        console.log(`[AUTH] Signup attempt`);
         // 1. Prevent signup if user already exists
         const existingUser = await prisma.user.findUnique({ where: { email } });
         console.log(`[AUTH] User lookup result:`, existingUser ? 'Found' : 'Not Found');
@@ -1376,13 +1376,13 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        console.log(`[AUTH] Login attempt for email: ${email}`);
+        console.log(`[AUTH] Login attempt`);
         const user = await prisma.user.findUnique({
             where: { email: email }
         });
 
         if (!user) {
-            console.log(`[AUTH] Login failed: User not found for ${email}`);
+            console.log(`[AUTH] Login failed: User not found`);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
         console.log(`[AUTH] User found for login: ${user.id}`);
@@ -1426,7 +1426,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/users', async (req, res) => {
     const { creatorId } = req.query;
     try {
-        const whereClause = creatorId ? { creatorId: parseInt(creatorId) } : {};
+        const whereClause = creatorId ? { creatorId: Number.parseInt(creatorId) } : {};
         const users = await prisma.user.findMany({
             where: whereClause,
             select: {
@@ -1453,7 +1453,7 @@ app.get('/api/users/:id/status', async (req, res) => {
     const { id } = req.params;
     try {
         const user = await prisma.user.findUnique({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             select: {
                 id: true,
                 isActive: true,
@@ -1532,7 +1532,7 @@ app.post('/api/users', async (req, res) => {
                 customRoleName,
                 isActive: req.body.isActive !== undefined ? req.body.isActive : true,
                 password: await bcrypt.hash(password, 10),
-                creatorId: creatorId ? parseInt(creatorId) : null
+                creatorId: creatorId ? Number.parseInt(creatorId) : null
             }
         });
 
@@ -1596,7 +1596,7 @@ app.put('/api/users/:id', async (req, res) => {
         }
 
         const user = await prisma.user.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: updateData
         });
 
@@ -1615,7 +1615,7 @@ app.delete('/api/users/:id', async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.user.delete({
-            where: { id: parseInt(id) }
+            where: { id: Number.parseInt(id) }
         });
         res.status(204).send();
     } catch (error) {
@@ -1633,7 +1633,7 @@ app.post('/api/users/:id/start-trial', async (req, res) => {
         trialEndDate.setDate(trialStartDate.getDate() + 14);
 
         const user = await prisma.user.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: {
                 trialStartDate,
                 trialEndDate,
@@ -1659,9 +1659,9 @@ app.get('/api/audit-programs', checkTrialExpiration, async (req, res) => {
     }
 
     try {
-        const parsedUserId = parseInt(userId);
+        const parsedUserId = Number.parseInt(userId);
         console.log(`[DEBUG] Fetching audit programs for parsedUserId: ${parsedUserId}`);
-        if (isNaN(parsedUserId)) {
+        if (Number.isNaN(parsedUserId)) {
             console.warn(`[DEBUG] parsedUserId is NaN for userId: ${userId}`);
             return res.json([]);
         }
@@ -1737,7 +1737,7 @@ app.get('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         const program = await prisma.auditProgram.findUnique({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             include: {
                 site: true,
                 auditors: true,
@@ -1760,15 +1760,15 @@ app.post('/api/audit-programs', checkTrialExpiration, async (req, res) => {
                 name,
                 isoStandard,
                 frequency,
-                duration: parseInt(duration),
-                siteId: parseInt(siteId),
+                duration: Number.parseInt(duration),
+                siteId: Number.parseInt(siteId),
                 auditors: {
-                    connect: auditorIds.map(id => ({ id: parseInt(id) }))
+                    connect: auditorIds.map(id => ({ id: Number.parseInt(id) }))
                 },
-                leadAuditorId: leadAuditorId ? parseInt(leadAuditorId) : null,
+                leadAuditorId: leadAuditorId ? Number.parseInt(leadAuditorId) : null,
                 scheduleData: scheduleData || {},
                 status: 'Draft',
-                userId: userId ? parseInt(userId) : null
+                userId: userId ? Number.parseInt(userId) : null
             },
             include: {
                 site: true,
@@ -1789,7 +1789,7 @@ app.put('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     try {
         // Disconnect all current auditors first before connecting new ones to ensure clean update
         await prisma.auditProgram.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: {
                 auditors: {
                     set: []
@@ -1798,17 +1798,17 @@ app.put('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
         });
 
         const program = await prisma.auditProgram.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: {
                 name,
                 isoStandard,
                 frequency,
-                duration: parseInt(duration),
-                siteId: parseInt(siteId),
+                duration: Number.parseInt(duration),
+                siteId: Number.parseInt(siteId),
                 auditors: {
-                    connect: auditorIds.map(aid => ({ id: parseInt(aid) }))
+                    connect: auditorIds.map(aid => ({ id: Number.parseInt(aid) }))
                 },
-                leadAuditorId: leadAuditorId ? parseInt(leadAuditorId) : null,
+                leadAuditorId: leadAuditorId ? Number.parseInt(leadAuditorId) : null,
                 scheduleData: scheduleData || {},
                 status: status || 'Draft'
             },
@@ -1827,7 +1827,7 @@ app.put('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
 
 app.delete('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
-    const programId = parseInt(id);
+    const programId = Number.parseInt(id);
     try {
         await prisma.$transaction(async (tx) => {
             // Delete all associated audit plans first
@@ -1854,9 +1854,9 @@ app.get('/api/audit-plans', checkTrialExpiration, async (req, res) => {
     const { programId, userId } = req.query;
     try {
         const whereClause = {};
-        if (programId) whereClause.auditProgramId = parseInt(programId);
+        if (programId) whereClause.auditProgramId = Number.parseInt(programId);
         if (userId) {
-            const uId = parseInt(userId);
+            const uId = Number.parseInt(userId);
             whereClause.OR = [
                 { userId: uId },
                 { leadAuditorId: uId },
@@ -1949,7 +1949,7 @@ app.get('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         const plan = await prisma.auditPlan.findUnique({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             include: {
                 leadAuditor: true,
                 auditors: true,
@@ -1984,7 +1984,7 @@ app.post('/api/audit-plans', checkTrialExpiration, async (req, res) => {
     try {
         const plan = await prisma.auditPlan.create({
             data: {
-                auditProgramId: parseInt(auditProgramId, 10),
+                auditProgramId: Number.parseInt(auditProgramId, 10),
                 executionId,
                 auditType,
                 auditName,
@@ -1994,12 +1994,12 @@ app.post('/api/audit-plans', checkTrialExpiration, async (req, res) => {
                 scope,
                 objective,
                 criteria,
-                leadAuditorId: leadAuditorId ? parseInt(leadAuditorId) : null,
+                leadAuditorId: leadAuditorId ? Number.parseInt(leadAuditorId) : null,
                 auditors: {
-                    connect: auditorIds ? auditorIds.map(id => ({ id: parseInt(id) })) : []
+                    connect: auditorIds ? auditorIds.map(id => ({ id: Number.parseInt(id) })) : []
                 },
                 itinerary: itinerary || [],
-                userId: userId ? parseInt(userId) : null
+                userId: userId ? Number.parseInt(userId) : null
             }
         });
         res.status(201).json(plan);
@@ -2032,11 +2032,11 @@ app.put('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
         if (scope !== undefined) updateData.scope = scope;
         if (objective !== undefined) updateData.objective = objective;
         if (criteria !== undefined) updateData.criteria = criteria;
-        if (leadAuditorId !== undefined) updateData.leadAuditorId = leadAuditorId ? parseInt(leadAuditorId) : null;
+        if (leadAuditorId !== undefined) updateData.leadAuditorId = leadAuditorId ? Number.parseInt(leadAuditorId) : null;
         if (auditorIds !== undefined) {
             updateData.auditors = {
                 set: [],
-                connect: auditorIds.map(aid => ({ id: parseInt(aid) }))
+                connect: auditorIds.map(aid => ({ id: Number.parseInt(aid) }))
             };
         }
         if (itinerary !== undefined) updateData.itinerary = itinerary;
@@ -2045,7 +2045,7 @@ app.put('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
         updateData.updatedAt = new Date();
 
         const plan = await prisma.auditPlan.update({
-            where: { id: parseInt(id) },
+            where: { id: Number.parseInt(id) },
             data: updateData
         });
         res.status(200).json(plan);
@@ -2060,7 +2060,7 @@ app.delete('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.auditPlan.delete({
-            where: { id: parseInt(id) }
+            where: { id: Number.parseInt(id) }
         });
         res.status(204).send();
     } catch (error) {
@@ -2290,7 +2290,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     }
 
     try {
-        const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+        const user = await prisma.user.findUnique({ where: { id: Number.parseInt(userId) } });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         // Duplicate subscription check: block if user already has active subscription
@@ -2381,7 +2381,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 app.post('/api/payments/portal', async (req, res) => {
     const { userId } = req.body;
     try {
-        const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+        const user = await prisma.user.findUnique({ where: { id: Number.parseInt(userId) } });
         if (!user || !user.stripeCustomerId) {
             return res.status(400).json({ error: 'Stripe customer not found' });
         }
@@ -2402,7 +2402,7 @@ app.post('/api/payments/portal', async (req, res) => {
 app.get('/api/subscription/invoices/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
-        const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+        const user = await prisma.user.findUnique({ where: { id: Number.parseInt(userId) } });
         if (!user || !user.stripeCustomerId) {
             return res.json([]); // Return empty if no customer exists yet
         }
@@ -2416,7 +2416,7 @@ app.get('/api/subscription/invoices/:userId', async (req, res) => {
 
         // 2. Fetch local payment records to fill gaps (especially for one-time payments without invoices)
         const localPayments = await prisma.payment.findMany({
-            where: { userId: parseInt(userId), status: 'paid' },
+            where: { userId: Number.parseInt(userId), status: 'paid' },
             orderBy: { createdAt: 'desc' }
         });
 
@@ -2516,8 +2516,8 @@ app.patch('/api/users/:userId/subscription-preference', async (req, res) => {
             return res.status(400).json({ error: 'Missing renewalType' });
         }
 
-        const targetUserId = parseInt(userId);
-        if (isNaN(targetUserId)) {
+        const targetUserId = Number.parseInt(userId);
+        if (Number.isNaN(targetUserId)) {
              return res.status(400).json({ error: 'Invalid User ID' });
         }
 
@@ -2564,8 +2564,8 @@ app.post('/api/subscription/cancel-request', async (req, res) => {
         return res.status(400).json({ error: 'User ID and Reason are required' });
     }
 
-    const parsedId = parseInt(userId);
-    if (isNaN(parsedId)) {
+    const parsedId = Number.parseInt(userId);
+    if (Number.isNaN(parsedId)) {
         console.error('Invalid User ID received:', userId);
         return res.status(400).json({ error: 'Invalid User ID format' });
     }
@@ -2631,8 +2631,8 @@ app.post('/api/subscription/upgrade-request', async (req, res) => {
         return res.status(400).json({ error: 'User ID and Target Plan are required' });
     }
 
-    const parsedId = parseInt(userId);
-    if (isNaN(parsedId)) {
+    const parsedId = Number.parseInt(userId);
+    if (Number.isNaN(parsedId)) {
         console.error('Invalid User ID received:', userId);
         return res.status(400).json({ error: 'Invalid User ID format' });
     }

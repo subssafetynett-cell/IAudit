@@ -3856,7 +3856,7 @@ const AuditExecute = () => {
                     if (!isRelevantToActiveStandards) return null;
 
                     // Find questions for this clause from editable checklist
-                    let questions = (editableChecklist as ChecklistContent[]).filter(q => q.clause === row.id);
+                    const questions = (editableChecklist as ChecklistContent[]).filter(q => q.clause === row.id);
 
                     // If no questions found for this relevant clause, provide a default one so it's not empty
                     if (questions.length === 0) {

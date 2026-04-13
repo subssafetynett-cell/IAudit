@@ -122,7 +122,7 @@ const CreateAuditPlanPage = () => {
                 const response = await fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`);
                 if (response.ok) {
                     const data = await response.json();
-                    let usersList = Array.isArray(data) ? data : [];
+                    const usersList = Array.isArray(data) ? data : [];
 
                     // Add current user if not in list
                     if (user && user.id) {
