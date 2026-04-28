@@ -10,7 +10,8 @@ COPY package*.json ./
 RUN npm ci
 
 COPY prisma ./prisma/
-RUN npx prisma generate
+COPY prisma.config.js ./
+RUN DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npx prisma generate
 
 COPY . .
 
@@ -25,6 +26,7 @@ RUN apk add --no-cache openssl
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.js ./
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/src ./src
 
