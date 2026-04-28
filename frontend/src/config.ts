@@ -3,7 +3,7 @@ const isLocalhost = window.location.hostname === "localhost" || window.location.
 
 export const API_BASE_URL = isLocalhost
     ? "http://localhost:3001"
-    : "https://api.iaudit.global";
+    : "/api";
 
 export const FRONTEND_URL = isLocalhost
     ? "http://localhost:5173"
