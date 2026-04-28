@@ -92,7 +92,7 @@ const Watermark: React.FC = () => {
                         </button>
                     </div>
                     <iframe
-                        src="https://auditmate.sitemate.co.uk/"
+                        src="https://auditmate.iaudit.global/"
                         className="w-full h-full border-none flex-1"
                         title="AuditMate Chatbot"
                     />
