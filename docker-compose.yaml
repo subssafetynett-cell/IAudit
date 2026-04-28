@@ -1,9 +1,9 @@
-version: '3.8'
+version: '3.9'
 
 services:
   db:
     image: postgres:15-alpine
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
@@ -13,29 +13,30 @@ services:
     expose:
       - 5432
 
-  backend:
+  server:
     build:
       context: ./server
-      dockerfile: Dockerfile.prod
-    restart: always
+      dockerfile: Dockerfile
+    restart: unless-stopped
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-iaudit}?schema=public
-      PORT: 3001
-      # Other variables (STRIPE_SECRET_KEY, etc.) should be added in Coolify dashboard
-    expose:
-      - 3001
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "3001:3001"
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.prod
-    restart: always
+      dockerfile: Dockerfile
+    restart: unless-stopped
     depends_on:
-      - backend
-    expose:
-      - 80
+      - server
+    ports:
+      - "8080:80"
 
 volumes:
   postgres_data:
