@@ -169,6 +169,7 @@ export function useCompanyStore() {
 
   // Sites
   const addSite = async (companyId: string, data: any) => {
+    console.log(`[useCompanyStore] Initiating addSite for company ${companyId}`, data);
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const response = await fetch(`${API_URL}/companies/${companyId}/sites`, {
@@ -176,8 +177,10 @@ export function useCompanyStore() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, userId: user.id }),
       });
+      
       if (response.ok) {
         const newSite = await response.json();
+        console.log(`[useCompanyStore] addSite success:`, newSite);
         const site: Site = {
           ...newSite,
           id: String(newSite.id),
@@ -187,10 +190,15 @@ export function useCompanyStore() {
           c.id === companyId ? { ...c, sites: [...c.sites, site] } : c
         );
         notify();
-        return site;
+        return { success: true, site };
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`[useCompanyStore] addSite failed with status ${response.status}:`, errorData);
+        return { success: false, error: errorData.message || `Failed to create site (Status: ${response.status})` };
       }
     } catch (error) {
-      console.error("Failed to add site:", error);
+      console.error("[useCompanyStore] addSite network error:", error);
+      return { success: false, error: "Network error occurred while creating site" };
     }
   };
 

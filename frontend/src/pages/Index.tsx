@@ -53,7 +53,7 @@ const Index = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showCreateCompany, setShowCreateCompany] = useState(false);
   const [showCreateSite, setShowCreateSite] = useState(false);
-  const [onboardingStep, setOnboardingStep] = useState<1 | 2>(1);
+  const [onboardingStep, setOnboardingStep] = useState<number>(1);
 
   // Calculate Metrics
   const totalSites = companies.reduce((acc, c) => acc + (c.sites?.length || 0), 0);
@@ -75,15 +75,21 @@ const Index = () => {
     if (userJson) {
       const user = JSON.parse(userJson);
       setCurrentUser(user);
-      
-      // Show trial modal ONLY IF onboarding is completed
-      // and trial hasn't started and user is on trial tier
-      if (user.onboardingCompleted && user.subscriptionStatus === 'trial' && !user.trialEndDate && !localStorage.getItem('trial_modal_seen')) {
-        setShowTrialModal(true);
-        localStorage.setItem('trial_modal_seen', 'true');
-      }
     }
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      // Show trial modal ONLY IF onboarding is completed
+      // and trial hasn't started and user is on trial tier
+      if (currentUser.onboardingCompleted && 
+          currentUser.subscriptionStatus === 'trial' && 
+          !currentUser.trialEndDate && 
+          !localStorage.getItem('trial_modal_seen')) {
+        setShowTrialModal(true);
+      }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -338,6 +344,7 @@ const Index = () => {
 
     const handleStartTrial = async () => {
         if (!currentUser) return;
+        localStorage.setItem('trial_modal_seen', 'true');
         try {
             const response = await fetch(`${API_BASE_URL}/api/users/${currentUser.id}/start-trial`, {
                 method: 'POST',
@@ -351,14 +358,17 @@ const Index = () => {
                 toast.success("Welcome! Your 14-day free trial has started.");
             } else {
                 toast.error("Failed to start trial. Please try again.");
+                localStorage.removeItem('trial_modal_seen');
             }
         } catch (error) {
             console.error("Trial start error:", error);
             toast.error("A connection error occurred.");
+            localStorage.removeItem('trial_modal_seen');
         }
     };
 
     const handleSubscribe = () => {
+        localStorage.setItem('trial_modal_seen', 'true');
         navigate("/subscription");
     };
 
@@ -846,6 +856,11 @@ const Index = () => {
               <Rocket className="w-8 h-8 text-emerald-400 animate-bounce" />
             </div>
             <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  Step {onboardingStep} of 6
+                </span>
+              </div>
               <h2 className="text-2xl font-bold tracking-tight">Welcome to iAudit!</h2>
               <p className="text-slate-300 text-sm max-w-[280px]">
                 {onboardingStep === 1 
@@ -857,49 +872,64 @@ const Index = () => {
 
           <div className="p-8 space-y-6 bg-white">
             <div className="space-y-4">
-              <div className={`flex gap-4 items-start translate-x-1 ${onboardingStep !== 1 ? 'opacity-50' : ''}`}>
-                <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${onboardingStep === 1 ? 'bg-emerald-50' : 'bg-slate-50'}`}>
-                  {onboardingStep > 1 ? (
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <Building2 className={`w-4 h-4 ${onboardingStep === 1 ? 'text-emerald-600' : 'text-slate-400'}`} />
-                  )}
+              {onboardingStep === 1 && (
+                <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                      <Building2 className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <h4 className="font-black text-xl text-slate-900 tracking-tight whitespace-nowrap">Step 1: Create a Company</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-sm font-medium text-slate-600 leading-relaxed px-1">
+                      First you need to create a company by clicking the create company button.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-slate-900">Step 1: Create a Company</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    First you need to create a company by clicking the create company button.
-                  </p>
-                </div>
-              </div>
+              )}
 
-              <div className={`flex gap-4 items-start translate-x-1 ${onboardingStep !== 2 ? 'opacity-50' : ''}`}>
-                <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${onboardingStep === 2 ? 'bg-emerald-50' : 'bg-slate-50'}`}>
-                  <MapPin className={`w-4 h-4 ${onboardingStep === 2 ? 'text-emerald-600' : 'text-slate-400'}`} />
+              {onboardingStep === 2 && (
+                <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                      <MapPin className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <h4 className="font-black text-xl text-slate-900 tracking-tight whitespace-nowrap">Step 2: Add Sites & Departments</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-sm font-medium text-slate-600 leading-relaxed px-1">
+                      Define your operational structure to track audits more effectively.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-slate-900">Step 2: Add Sites & Departments</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Define your operational structure to track audits more effectively.
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
 
-            <Button 
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 group"
-              onClick={() => {
-                setShowWelcome(false);
-                if (onboardingStep === 1) {
-                  setShowCreateCompany(true);
-                } else {
-                  setShowCreateSite(true);
-                }
-              }}
-            >
-              {onboardingStep === 1 ? "Set Up My Company" : "Set Up My Site"}
-              <Sparkles className="ml-2 w-4 h-4 group-hover:rotate-12 transition-transform" />
-            </Button>
+            <div className="flex gap-3">
+              {onboardingStep === 2 && (
+                <Button 
+                  variant="outline"
+                  className="w-1/3 h-12 text-slate-600 font-bold rounded-xl"
+                  onClick={() => setOnboardingStep(1)}
+                >
+                  Back
+                </Button>
+              )}
+              <Button 
+                className={`${onboardingStep === 2 ? 'w-2/3' : 'w-full'} h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 group`}
+                onClick={() => {
+                  setShowWelcome(false);
+                  if (onboardingStep === 1) {
+                    setShowCreateCompany(true);
+                  } else {
+                    setShowCreateSite(true);
+                  }
+                }}
+              >
+                {onboardingStep === 1 ? "Set Up My Company" : "Set Up My Site"}
+                <Sparkles className="ml-2 w-4 h-4 group-hover:rotate-12 transition-transform" />
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
@@ -936,18 +966,28 @@ const Index = () => {
         }}
         mode="create"
         onSubmit={async (data) => {
+          console.log("[Onboarding] SiteModal onSubmit triggered", data);
           if (companies.length > 0) {
-            const success = await addSite(companies[0].id, data);
-            if (success) {
+            console.log(`[Onboarding] Initiating Step 2 site creation for company: ${companies[0].id}`);
+            const result = await addSite(companies[0].id, data);
+            console.log("[Onboarding] Step 2 API response received:", result);
+            
+            if (result && result.success) {
+              console.log("[Onboarding] Successfully created site, initiating direct navigation to Step 3...");
               setShowCreateSite(false);
               toast.success("Perfect! Your first site has been added.");
               
-              const isTourCompleted = localStorage.getItem('iaudit_onboarding_tour_completed') === 'true';
-              if (!isTourCompleted) {
-                // Transition to Step 3: Users page for user creation
-                setTimeout(() => navigate("/users?onboarding=true"), 1500);
-              }
+              // Direct navigation as requested, preserving the onboarding flag
+              navigate("/users?onboarding=true");
+            } else {
+              const errorMessage = result?.error || "Failed to create site. Please try again.";
+              console.error("[Onboarding] Step 2 failed:", errorMessage);
+              toast.error(errorMessage);
+              // Do NOT navigate or close modal on failure
             }
+          } else {
+            console.error("[Onboarding] No company found in store during site creation");
+            toast.error("Company information missing. Please restart the setup.");
           }
         }}
       />

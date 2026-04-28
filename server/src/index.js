@@ -247,23 +247,20 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                             sub_renewal_date: subRenewalDate
                         }
                     });
-                    console.log('Subscription updated:', subscriptionId);
-
-                    // Also update User table to reflect active subscription
                     await prisma.user.update({
                         where: { id: userId },
                         data: {
                             subscriptionStatus: 'active',
                             subscriptionPlan: session.metadata.planId,
                             stripeSubscriptionId: subscriptionId,
+                            stripeCustomerId: session.customer,
                             planStartDate: planStartDate,
-                            // Always write nextBillingDate from Stripe's period_end — never leave stale
                             nextBillingDate: periodEnd,
-                            renewalType: 'AUTOPAY', // Unconditionally default monthly plans to AUTOPAY
-                            autopayConsent: true,   // Unconditionally set consent to true
-                            ...(planExpiryDate && { planExpiryDate })
+                            renewalType: 'AUTOPAY',
+                            autopayConsent: true
                         }
                     });
+                    console.log('Subscription and User updated:', subscriptionId);
                 }
 
                 // 3. For one-time contract payments, activate user directly
@@ -320,6 +317,17 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                             ? (nextBillingDate ? nextBillingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A')
                             : (planExpiryDate ? planExpiryDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A');
                         const startDateValue = planStartDate ? planStartDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : paymentDate;
+
+                        // 5. Finalize Payment record status
+                        await prisma.payment.updateMany({
+                            where: { stripeSessionId: session.id },
+                            data: {
+                                status: 'paid',
+                                amount: (session.amount_total / 100),
+                                stripePaymentIntentId: session.payment_intent || null,
+                                stripeInvoiceId: session.invoice || null
+                            }
+                        });
 
                         const confirmationMail = {
                             from: process.env.SMTP_USER || 'noreply@iaudit.global',
@@ -535,8 +543,21 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                     // Also update stripePaymentIntentId on the Payment record for this subscription
                     if (invoice.payment_intent) {
                         // Find the payment by matching the customer's latest pending/paid payment
-                        const customer = invoice.customer;
-                        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customer } });
+                        // SECURITY: Use metadata if available, fallback to customer ID lookup only as last resort
+                        const metadataUserId = invoice.subscription_details?.metadata?.userId || 
+                                               invoice.metadata?.userId || 
+                                               fullInvoice?.subscription?.metadata?.userId;
+                        
+                        let user = null;
+                        if (metadataUserId) {
+                            user = await prisma.user.findUnique({ where: { id: Number.parseInt(metadataUserId) } });
+                        }
+                        
+                        if (!user) {
+                            const customer = invoice.customer;
+                            user = await prisma.user.findFirst({ where: { stripeCustomerId: customer } });
+                        }
+
                         if (user) {
                             // Update the most recent payment for this user that has no paymentIntentId
                             const payment = await prisma.payment.findFirst({
@@ -563,7 +584,12 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                     });
 
                     const invoiceUser = await prisma.user.findFirst({
-                        where: { stripeCustomerId: fullInvoice.customer }
+                        where: { 
+                            OR: [
+                                { stripeCustomerId: fullInvoice.customer },
+                                { email: fullInvoice.customer_email }
+                            ]
+                        }
                     });
 
                     if (invoiceUser && invoiceUser.email) {
@@ -2241,42 +2267,42 @@ app.post('/api/feedback', async (req, res) => {
     }
 });
 
-
-// --- Stripe Session Verification Endpoint ---
 app.get('/api/stripe/session/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
     try {
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
-        let plan = session.metadata?.planId || 'unknown';
-        let billingType = session.metadata?.billingType || 'ONCE';
-        let status = 'unknown';
-        let currentPeriodEnd = null;
-        let amount = session.amount_total ? (session.amount_total / 100).toFixed(2) : '0.00';
-        let currency = session.currency ? session.currency.toUpperCase() : 'GBP';
-        let subscriptionId = session.subscription;
+        const session = await stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['subscription', 'payment_intent']
+        });
 
-        if (subscriptionId) {
-            const sub = await stripe.subscriptions.retrieve(subscriptionId);
-            status = sub.status;
-            currentPeriodEnd = sub.current_period_end
-                ? new Date(sub.current_period_end * 1000).toISOString()
-                : null;
-        } else if (session.payment_status === 'paid') {
-            status = 'active';
+        const planId = session.metadata?.planId || 'Standard';
+        const billingType = session.metadata?.billingType || 'One-time';
+        const amount = (session.amount_total / 100).toFixed(2);
+        const currency = session.currency?.toUpperCase();
+        
+        let status = session.status;
+        let currentPeriodEnd = null;
+        let subscriptionId = session.subscription?.id || session.subscription || null;
+
+        if (session.subscription && typeof session.subscription === 'object') {
+            status = session.subscription.status;
+            currentPeriodEnd = new Date(session.subscription.current_period_end * 1000).toISOString();
         }
 
         res.json({
-            plan: plan.toUpperCase(),
+            plan: planId.toUpperCase(),
             isMonthly: billingType.toUpperCase() === 'MONTHLY',
             subscriptionId,
             status,
             currentPeriodEnd,
             amount,
-            currency
+            currency,
+            // SECURITY: Return metadata for frontend verification
+            userId: session.metadata?.userId || null,
+            email: session.metadata?.email || null
         });
     } catch (error) {
-        console.error('Session Verification Error:', error);
-        res.status(500).json({ error: 'Failed to verify session' });
+        console.error('Stripe Session Retrieve Error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -2318,7 +2344,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
             const customer = await stripe.customers.create({
                 email: user.email,
                 name: `${user.firstName} ${user.lastName}`,
-                metadata: { userId: user.id.toString() }
+                metadata: { userId: user.id.toString(), email: user.email }
             });
             stripeCustomerId = customer.id;
             await prisma.user.update({
@@ -2337,10 +2363,16 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
             line_items: [{ price: priceId, quantity: 1 }],
             mode: isSubscription ? 'subscription' : 'payment',
             locale: 'auto',
-            adaptive_pricing: { enabled: false }, // Disable currency toggle (INR/GBP switch)
+            adaptive_pricing: { enabled: false }, 
             success_url: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/subscription?canceled=true`,
-            metadata: { userId: user.id.toString(), planId, billingType, duration: duration || '1year' },
+            metadata: { 
+                userId: user.id.toString(), 
+                email: user.email,
+                planId, 
+                billingType, 
+                duration: duration || '1year' 
+            },
         };
 
         // For one-time payments, enable invoice creation
@@ -2352,7 +2384,13 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         if (isSubscription) {
             sessionParams.currency = currencyKey.toLowerCase();
             sessionParams.subscription_data = {
-                metadata: { userId: user.id.toString(), planId, billingType, duration: duration || '1year' }
+                metadata: { 
+                    userId: user.id.toString(), 
+                    email: user.email,
+                    planId, 
+                    billingType, 
+                    duration: duration || '1year' 
+                }
             };
         }
 

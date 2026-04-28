@@ -362,6 +362,11 @@ const GapAnalysis = () => {
                                         <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
                                         
                                         <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
+                                                        Step 5 of 6
+                                                    </span>
+                                                </div>
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
                                                         <ClipboardList className="w-6 h-6 text-emerald-600" />

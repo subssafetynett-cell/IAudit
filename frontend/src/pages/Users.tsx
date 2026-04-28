@@ -286,6 +286,11 @@ export default function Users() {
                                         <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-500" />
                                         
                                         <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
+                                                    Step 3 of 6
+                                                </span>
+                                            </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
                                                     <UsersIcon className="w-6 h-6 text-blue-600" />
@@ -299,10 +304,21 @@ export default function Users() {
                                             </p>
                                         </div>
 
-                                        <div className="flex justify-end pt-2">
+                                        <div className="flex justify-between pt-2 gap-3">
+                                            <Button 
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-1/3 text-slate-600 font-bold rounded-xl h-12"
+                                                onClick={() => {
+                                                    setShowOnboardingGuide(false);
+                                                    navigate("/");
+                                                }}
+                                            >
+                                                Back
+                                            </Button>
                                             <Button 
                                                 size="sm"
-                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95 py-6 text-base"
+                                                className="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 h-12 text-base"
                                                 onClick={() => {
                                                     setShowOnboardingGuide(false);
                                                     // Transition to Step 4: Self Assessment

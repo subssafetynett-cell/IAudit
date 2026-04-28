@@ -39,22 +39,37 @@ export default function SubscriptionSuccess() {
           const storedUser = localStorage.getItem("user");
           if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
+            
+            // SECURITY: Verify this session belongs to the logged-in user
+            if (data.userId && parsedUser.id.toString() !== data.userId.toString()) {
+              console.error("Session mismatch: This payment session belongs to a different user.");
+              return;
+            }
+
+            // Update local state with new plan
             localStorage.setItem("user", JSON.stringify({
               ...parsedUser,
               subscriptionStatus: 'active',
               subscriptionPlan: data.plan
             }));
+
+            // Redirect to clean route after 2 seconds to show success message
+            setTimeout(() => {
+              navigate('/subscription-details');
+            }, 2000);
           }
         })
-        .catch(err => console.error("Session fetch error:", err))
-        .finally(() => setLoading(false));
+        .catch(err => {
+          console.error("Session fetch error:", err);
+          setLoading(false);
+        });
     } else {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, navigate]);
 
   const handleNext = () => {
-    navigate('/subscription');
+    navigate('/subscription-details');
   };
 
   const currentModal = useMemo(() => {

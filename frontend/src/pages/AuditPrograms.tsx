@@ -761,6 +761,11 @@ const AuditPrograms = () => {
                                         <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
                                         
                                         <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
+                                                    Step 6 of 6
+                                                </span>
+                                            </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
                                                     <Calendar className="w-6 h-6 text-emerald-600" />
@@ -789,16 +794,41 @@ const AuditPrograms = () => {
                                             <Button 
                                                 size="sm"
                                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl px-8 shadow-lg shadow-emerald-200 transition-all active:scale-95 py-6 text-base"
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     setShowOnboardingGuide(false);
-                                                    // Set completion flag
+                                                    
+                                                    // Set completion flag for tour in localStorage
                                                     localStorage.setItem('iaudit_onboarding_tour_completed', 'true');
+                                                    
+                                                    // Update user's onboarding status in backend and local storage
+                                                    const userJson = localStorage.getItem('user');
+                                                    if (userJson) {
+                                                        const user = JSON.parse(userJson);
+                                                        try {
+                                                            const response = await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ onboardingCompleted: true })
+                                                            });
+                                                            
+                                                            if (response.ok) {
+                                                                const updatedUser = { ...user, onboardingCompleted: true };
+                                                                localStorage.setItem('user', JSON.stringify(updatedUser));
+                                                            }
+                                                        } catch (error) {
+                                                            console.error("Failed to update onboarding status:", error);
+                                                        }
+                                                    }
+
                                                     const newParams = new URLSearchParams(searchParams);
                                                     newParams.delete("onboarding");
                                                     setSearchParams(newParams);
+                                                    
+                                                    // Redirect to dashboard where the trial modal will show up
+                                                    navigate("/");
                                                 }}
                                             >
-                                                Done <Check className="ml-2 w-5 h-5" />
+                                                Finish Onboarding <Check className="ml-2 w-5 h-5" />
                                             </Button>
                                         </div>
                                         </div>
