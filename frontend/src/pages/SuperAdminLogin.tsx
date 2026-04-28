@@ -19,8 +19,8 @@ export default function SuperAdminLogin() {
         setIsLoading(true);
         setError("");
 
-        // Specific requirements: admin@sitemate.co.uk / 123
-        if (email === "admin@sitemate.co.uk" && password === "123") {
+        // Specific requirements: admin@iaudit.global / 123
+        if (email === "admin@iaudit.global" && password === "123") {
             setTimeout(() => {
                 localStorage.setItem("isSuperAdminAuthenticated", "true");
                 toast.success("Super Admin authenticated successfully");
@@ -64,7 +64,7 @@ export default function SuperAdminLogin() {
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="admin@sitemate.co.uk"
+                                    placeholder="admin@iaudit.global"
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
