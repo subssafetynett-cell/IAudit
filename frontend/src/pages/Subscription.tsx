@@ -30,8 +30,8 @@ const plans: PricingPlan[] = [
   {
     name: "Free",
     price: {
-      usd: { "1year": "0", "3years": "0", "6years": "0" },
-      gbp: { "1year": "0", "3years": "0", "6years": "0" },
+      usd: { "1year": "1", "3years": "1", "6years": "1" },
+      gbp: { "1year": "1", "3years": "1", "6years": "1" },
     },
     features: [
       "Gap Analysis",
