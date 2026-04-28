@@ -25,8 +25,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-iaudit}?schema=public
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "3001:3001"
+    expose:
+      - 3001
 
   frontend:
     build:
@@ -35,8 +35,8 @@ services:
     restart: unless-stopped
     depends_on:
       - server
-    ports:
-      - "8080:80"
+    expose:
+      - 80
 
 volumes:
   postgres_data:
