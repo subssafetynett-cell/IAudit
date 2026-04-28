@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3001;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 app.use(cors({
-    origin: ['https://apps.iaudit.global', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080', 'http://localhost:8081'], // Allow production and local development
+    origin: ['https://sitemate.co.uk', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080', 'http://localhost:8081'], // Allow production and local development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires']
 }));
@@ -330,7 +330,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                         });
 
                         const confirmationMail = {
-                            from: process.env.SMTP_USER || 'noreply@iaudit.global',
+                            from: process.env.SMTP_USER || 'noreply@sitemate.co.uk',
                             to: subscribedUser.email,
                             subject: `Thank you for subscribing to iAudit ${planName}!`,
                             html: `
@@ -397,7 +397,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                                             <p style="margin: 0 0 4px; color: #166534; font-size: 14px; font-weight: 700;">Need Help?</p>
                                             <p style="margin: 0; color: #15803d; font-size: 13px; line-height: 1.6;">
                                                 If you have any questions or need assistance, contact our support team at 
-                                                <a href="mailto:support@iaudit.global" style="color: #1e855e; font-weight: 700; text-decoration: underline;">support@iaudit.global</a>
+                                                <a href="mailto:support@sitemate.co.uk" style="color: #1e855e; font-weight: 700; text-decoration: underline;">support@sitemate.co.uk</a>
                                             </p>
                                         </div>
                                     </div>
@@ -615,7 +615,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                             : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
                         const invoiceMail = {
-                            from: process.env.SMTP_USER || 'noreply@iaudit.global',
+                            from: process.env.SMTP_USER || 'noreply@sitemate.co.uk',
                             to: invoiceUser.email,
                             subject: `Your iAudit Invoice – ${invoiceNumber}`,
                             html: `
@@ -686,7 +686,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                                             <p style="margin: 0 0 4px; color: #166534; font-size: 14px; font-weight: 700;">Questions about this invoice?</p>
                                             <p style="margin: 0; color: #15803d; font-size: 13px; line-height: 1.6;">
                                                 Contact our support team at
-                                                <a href="mailto:support@iaudit.global" style="color: #1e855e; font-weight: 700; text-decoration: underline;">support@iaudit.global</a>
+                                                <a href="mailto:support@sitemate.co.uk" style="color: #1e855e; font-weight: 700; text-decoration: underline;">support@sitemate.co.uk</a>
                                             </p>
                                         </div>
                                     </div>
@@ -751,12 +751,12 @@ app.use(express.json({ limit: '50mb' }));
 app.use((req, res, next) => {
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self' https://apps.iaudit.global; " +
+        "default-src 'self' https://sitemate.co.uk; " +
         "font-src 'self' data: https://fonts.gstatic.com; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "script-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data:; " +
-        "connect-src 'self' https://apps.iaudit.global https://fonts.googleapis.com;"
+        "connect-src 'self' https://sitemate.co.uk https://fonts.googleapis.com;"
     );
     next();
 });
@@ -1302,12 +1302,12 @@ const sendOtpLogic = async (req, res) => {
                 console.error('     🚨 CRITICAL: MICROSOFT 365 SECURITY BLOCK DETECTED 🚨');
                 console.error('====================================================================');
                 console.error('Exact Issue: Microsoft Office 365 has disabled Basic Authentication');
-                console.error('             (SMTP AUTH) for the account "noreply@iaudit.global".');
+                console.error('             (SMTP AUTH) for the account "noreply@sitemate.co.uk".');
                 console.error('');
                 console.error('HOW TO FIX THIS (Required Admin Action):');
                 console.error('  1. Log in to admin.microsoft.com as a Global Administrator.');
                 console.error('  2. Go to Users > Active users.');
-                console.error('  3. Click on the user: noreply@iaudit.global');
+                console.error('  3. Click on the user: noreply@sitemate.co.uk');
                 console.error('  4. Click the "Mail" tab on the right side window.');
                 console.error('  5. Click "Manage email apps".');
                 console.error('  6. Check the box for "Authenticated SMTP" and save changes.');
@@ -2215,9 +2215,9 @@ app.post('/api/feedback', async (req, res) => {
 
     try {
         const mailOptions = {
-            from: process.env.SMTP_USER || 'noreply@iaudit.global',
-            to: 'Mathew@iaudit.global',
-            cc: 'jasmin@iaudit.global',
+            from: process.env.SMTP_USER || 'noreply@sitemate.co.uk',
+            to: 'Mathew@sitemate.co.uk',
+            cc: 'jasmin@sitemate.co.uk',
             subject: `[Feedback] From ${name}`,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
@@ -2616,8 +2616,8 @@ app.post('/api/subscription/cancel-request', async (req, res) => {
         }
 
         const mailOptions = {
-            from: process.env.SMTP_USER || 'noreply@iaudit.global',
-            to: 'support@iaudit.global',
+            from: process.env.SMTP_USER || 'noreply@sitemate.co.uk',
+            to: 'support@sitemate.co.uk',
             subject: `[Cancellation Request] ${user.firstName} ${user.lastName}`,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
@@ -2683,8 +2683,8 @@ app.post('/api/subscription/upgrade-request', async (req, res) => {
         }
 
         const mailOptions = {
-            from: process.env.SMTP_USER || 'noreply@iaudit.global',
-            to: 'support@iaudit.global',
+            from: process.env.SMTP_USER || 'noreply@sitemate.co.uk',
+            to: 'support@sitemate.co.uk',
             subject: `[Upgrade Request] ${user.firstName} ${user.lastName}`,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">

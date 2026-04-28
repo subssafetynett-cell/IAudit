@@ -7,4 +7,4 @@ export const API_BASE_URL = isLocalhost
 
 export const FRONTEND_URL = isLocalhost
     ? "http://localhost:5173"
-    : "https://apps.iaudit.global";
+    : "https://sitemate.co.uk";
