@@ -1,32 +1,34 @@
-FROM node:22-slim
+# Stage 1: Build
+FROM node:20-alpine AS builder
 
-# Install openssl and other dependencies for Prisma and bcrypt
-RUN apt-get update && apt-get install -y \
-    openssl \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-WORKDIR /app/server
+# Install build dependencies
+RUN apk add --no-cache openssl python3 make g++
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
-
-# Copy prisma schema
 COPY prisma ./prisma/
-
-# Generate Prisma client
 RUN npx prisma generate
 
-# Copy source code
 COPY . .
 
-# Expose port
+# Stage 2: Production Runtime
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache openssl
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/src ./src
+
+ENV NODE_ENV=production
 EXPOSE 3001
 
-# Start command
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]
