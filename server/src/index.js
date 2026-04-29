@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import prisma from './prisma.js';
+import prisma, { pool } from './prisma.js';
 import bcrypt from 'bcrypt';
 import Stripe from 'stripe';
 import { STRIPE_CONFIG } from './stripe-config.js';
@@ -1333,7 +1333,6 @@ const sendOtpLogic = async (req, res) => {
     } catch (error) {
         console.error(`--- SEND OTP FAILURE at step: ${step} ---`);
         console.error('Email:', email);
-        console.error('Full Technical Error:', error); // CRITICAL: Log the entire object
         console.error('Error message:', error.message);
 
         // Add specific hints for AWS/Production issues
@@ -1456,7 +1455,7 @@ app.post('/auth/login', async (req, res) => {
         res.status(200).json(userWithoutPassword);
 
     } catch (error) {
-        console.error('Login error technical details:', error);
+        console.error('Login error:', error);
         res.status(500).json({ error: 'An error occurred during login' });
     }
 });
@@ -2745,6 +2744,8 @@ const gracefulShutdown = async (signal) => {
     try {
         await prisma.$disconnect();
         console.log('Prisma disconnected.');
+        await pool.end();
+        console.log('Database pool closed.');
         process.exit(0);
     } catch (err) {
         console.error('Error during shutdown:', err);

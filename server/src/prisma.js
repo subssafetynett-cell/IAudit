@@ -1,3 +1,6 @@
+import pkgPg from 'pg';
+const { Pool } = pkgPg;
+import { PrismaPg } from '@prisma/adapter-pg';
 import pkgPrisma from '../generated/prisma/index.js';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -5,26 +8,26 @@ dotenv.config();
 const { PrismaClient } = pkgPrisma;
 
 const rawConnectionString = process.env.DATABASE_URL || '';
-// Clean the connection string
+// Clean the connection string by removing potential quotes and whitespace
 const connectionString = rawConnectionString.trim().replace(/^["']|["']$/g, '');
 
-console.log('Prisma: Initializing native connection engine...');
+const poolConfig = {
+    connectionString,
+    connectionTimeoutMillis: 20000, // 20 seconds
+    max: 5, 
+    idleTimeoutMillis: 30000 
+};
 
-const prisma = new PrismaClient({
-    datasources: {
-        db: {
-            url: connectionString,
-        },
-    },
-    log: ['error', 'warn'],
-});
+// Automatically enable SSL for external databases (Neon, AWS, etc.)
+if (connectionString.includes('neon.tech') || connectionString.includes('aws.com') || connectionString.includes('sslmode=require')) {
+    poolConfig.ssl = {
+        rejectUnauthorized: false
+    };
+}
 
-// Test connection
-prisma.$connect()
-    .then(() => console.log('Prisma: Native connection verified successfully.'))
-    .catch(err => {
-        console.error('Prisma: Connection verification FAILED.');
-        console.error('Prisma: Error Details:', err);
-    });
+const pool = new Pool(poolConfig);
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
+export { pool };
 export default prisma;
