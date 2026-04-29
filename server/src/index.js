@@ -1333,6 +1333,7 @@ const sendOtpLogic = async (req, res) => {
     } catch (error) {
         console.error(`--- SEND OTP FAILURE at step: ${step} ---`);
         console.error('Email:', email);
+        console.error('Full Technical Error:', error); // CRITICAL: Log the entire object
         console.error('Error message:', error.message);
 
         // Add specific hints for AWS/Production issues
@@ -1455,7 +1456,7 @@ app.post('/auth/login', async (req, res) => {
         res.status(200).json(userWithoutPassword);
 
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('Login error technical details:', error);
         res.status(500).json({ error: 'An error occurred during login' });
     }
 });
