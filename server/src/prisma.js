@@ -7,12 +7,25 @@ dotenv.config();
 
 const { PrismaClient } = pkgPrisma;
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 15000, // 15 seconds
-    max: 2, // Aggressively limit to 2 for testing/RDS limits
-    idleTimeoutMillis: 10000 // 10 seconds idle timeout
-});
+const rawConnectionString = process.env.DATABASE_URL || '';
+// Clean the connection string by removing potential quotes and whitespace
+const connectionString = rawConnectionString.trim().replace(/^["']|["']$/g, '');
+
+const poolConfig = {
+    connectionString,
+    connectionTimeoutMillis: 20000, // 20 seconds
+    max: 5, 
+    idleTimeoutMillis: 30000 
+};
+
+// Automatically enable SSL for external databases (Neon, AWS, etc.)
+if (connectionString.includes('neon.tech') || connectionString.includes('aws.com') || connectionString.includes('sslmode=require')) {
+    poolConfig.ssl = {
+        rejectUnauthorized: false
+    };
+}
+
+const pool = new Pool(poolConfig);
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
