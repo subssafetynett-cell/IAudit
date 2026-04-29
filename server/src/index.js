@@ -10,17 +10,19 @@ import { execSync } from 'child_process';
 
 dotenv.config();
 
-// Auto-apply database schema changes in production
-try {
-    console.log('Synchronizing database schema using local binary...');
-    // Use the local node_modules binary instead of npx, as npx may not be in the PATH when run via pm2 or systemd on EC2
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
-    execSync('npx prisma generate', { stdio: 'inherit' });
-    console.log('Database synchronization completed.');
-} catch (error) {
-    console.error('Failed to synchronize database. Schema might be out of date:', error.message);
-    console.log('You can manually trigger a sync by hitting /api/admin/upgrade-db');
-}
+// Auto-apply database schema changes in production (moved to background to prevent startup timeouts)
+setTimeout(async () => {
+    try {
+        console.log('Synchronizing database schema in background...');
+        // Use the local node_modules binary instead of npx, as npx may not be in the PATH when run via pm2 or systemd on EC2
+        execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+        execSync('npx prisma generate', { stdio: 'inherit' });
+        console.log('Database synchronization completed.');
+    } catch (error) {
+        console.error('Failed to synchronize database in background:', error.message);
+        console.log('You can manually trigger a sync by hitting /api/admin/upgrade-db');
+    }
+}, 5000); // 5 second delay to allow DB to be ready
 
 const app = express();
 const PORT = process.env.PORT || 3001;
