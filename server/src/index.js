@@ -22,10 +22,11 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-    origin: ['https://iaudit.global', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080', 'http://localhost:8081'], // Allow production and local development
+    origin: ['https://iaudit.global', 'https://api.iaudit.global', 'https://apps.iaudit.global', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080', 'http://localhost:8081'], // Allow production and local development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires']
 }));
+
 // --- Stripe Webhook Route (MUST BE BEFORE express.json()) ---
 app.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
@@ -746,13 +747,14 @@ app.use(express.json({ limit: '50mb' }));
 app.use((req, res, next) => {
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self' https://iaudit.global; " +
+        "default-src 'self' https://iaudit.global https://api.iaudit.global https://apps.iaudit.global; " +
         "font-src 'self' data: https://fonts.gstatic.com; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "script-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data:; " +
-        "connect-src 'self' https://iaudit.global https://fonts.googleapis.com;"
+        "connect-src 'self' https://iaudit.global https://api.iaudit.global https://apps.iaudit.global https://fonts.googleapis.com;"
     );
+
     next();
 });
 
