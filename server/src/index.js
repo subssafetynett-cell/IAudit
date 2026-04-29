@@ -6,23 +6,25 @@ import prisma, { pool } from './prisma.js';
 import bcrypt from 'bcrypt';
 import Stripe from 'stripe';
 import { STRIPE_CONFIG } from './stripe-config.js';
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
 
 dotenv.config();
 
-// Auto-apply database schema changes in production (moved to background to prevent startup timeouts)
-setTimeout(async () => {
-    try {
-        console.log('Synchronizing database schema in background...');
-        // Use the local node_modules binary instead of npx, as npx may not be in the PATH when run via pm2 or systemd on EC2
-        execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
-        execSync('npx prisma generate', { stdio: 'inherit' });
-        console.log('Database synchronization completed.');
-    } catch (error) {
-        console.error('Failed to synchronize database in background:', error.message);
-        console.log('You can manually trigger a sync by hitting /api/admin/upgrade-db');
-    }
-}, 5000); // 5 second delay to allow DB to be ready
+// Auto-apply database schema changes in production (Truly non-blocking background task)
+setTimeout(() => {
+    console.log('Background: Starting database synchronization...');
+    exec('npx prisma db push --accept-data-loss', (error, stdout, stderr) => {
+        if (error) {
+            console.error('Background DB Sync Error:', error.message);
+            return;
+        }
+        console.log('Background DB Sync: Schema pushed.');
+        exec('npx prisma generate', (genError) => {
+            if (genError) console.error('Background Prisma Generate Error:', genError.message);
+            else console.log('Background DB Sync: Client generated.');
+        });
+    });
+}, 5000);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
