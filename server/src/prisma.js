@@ -7,18 +7,21 @@ const { PrismaClient } = pkgPrisma;
 const rawConnectionString = process.env.DATABASE_URL || '';
 // Clean the connection string
 const connectionString = rawConnectionString.trim().replace(/^["']|["']$/g, '');
-// Force clean the env var for the binary engine
-process.env.DATABASE_URL = connectionString;
 
-console.log('Prisma: Initializing with Binary Engine...');
+console.log('Prisma: Initializing native connection engine...');
 
 const prisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: connectionString,
+        },
+    },
     log: ['error', 'warn'],
 });
 
 // Test connection
 prisma.$connect()
-    .then(() => console.log('Prisma: Binary connection verified successfully.'))
+    .then(() => console.log('Prisma: Native connection verified successfully.'))
     .catch(err => {
         console.error('Prisma: Connection verification FAILED.');
         console.error('Prisma: Error Details:', err);
