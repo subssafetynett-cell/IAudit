@@ -1,6 +1,3 @@
-import pkgPg from 'pg';
-const { Pool } = pkgPg;
-import { PrismaPg } from '@prisma/adapter-pg';
 import pkgPrisma from '../generated/prisma/index.js';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -11,23 +8,14 @@ const rawConnectionString = process.env.DATABASE_URL || '';
 // Clean the connection string by removing potential quotes and whitespace
 const connectionString = rawConnectionString.trim().replace(/^["']|["']$/g, '');
 
-const poolConfig = {
-    connectionString,
-    connectionTimeoutMillis: 20000, // 20 seconds
-    max: 5, 
-    idleTimeoutMillis: 30000 
-};
+// Standard Prisma Client initialization
+// Note: Prisma 5/6/7 handles SSL automatically via the connection string query parameters (?sslmode=require)
+const prisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: connectionString,
+        },
+    },
+});
 
-// Automatically enable SSL for external databases (Neon, AWS, etc.)
-if (connectionString.includes('neon.tech') || connectionString.includes('aws.com') || connectionString.includes('sslmode=require')) {
-    poolConfig.ssl = {
-        rejectUnauthorized: false
-    };
-}
-
-const pool = new Pool(poolConfig);
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
-
-export { pool };
 export default prisma;
