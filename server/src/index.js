@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import prisma, { pool } from './prisma.js';
+import prisma from './prisma.js';
 import bcrypt from 'bcrypt';
 import Stripe from 'stripe';
 import { STRIPE_CONFIG } from './stripe-config.js';
@@ -2744,8 +2744,6 @@ const gracefulShutdown = async (signal) => {
     try {
         await prisma.$disconnect();
         console.log('Prisma disconnected.');
-        await pool.end();
-        console.log('Database pool closed.');
         process.exit(0);
     } catch (err) {
         console.error('Error during shutdown:', err);
