@@ -1237,16 +1237,17 @@ app.delete('/companies/:id', checkTrialExpiration, async (req, res) => {
 // Alias for signup if frontend calls /auth/signup directly
 // Refactored Send OTP logic to be reusable
 const sendOtpLogic = async (req, res) => {
-    const { email } = req.body;
-    if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
+    let { email } = req.body;
+    if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: 'Valid email is required' });
     }
+    email = email.toLowerCase().trim();
 
     let step = 'Lookup existing user';
     try {
         console.log(`[AUTH] Signup attempt`);
         // 1. Prevent signup if user already exists
-        const existingUser = await prisma.user.findUnique({ where: { email } });
+        const existingUser = await prisma.user.findFirst({ where: { email } });
         console.log(`[AUTH] User lookup result:`, existingUser ? 'Found' : 'Not Found');
         if (existingUser) {
             return res.status(400).json({ error: 'Email already registered' });
@@ -1355,13 +1356,14 @@ app.post('/auth/send-otp', sendOtpLogic);
 app.post('/auth/signup', sendOtpLogic);
 
 app.post('/auth/verify-otp-and-signup', async (req, res) => {
-    const { email, otp, firstName, lastName, mobile, password, role, customRoleName, isActive } = req.body;
+    let { email, otp, firstName, lastName, mobile, password, role, customRoleName, isActive } = req.body;
 
-    if (!email || !otp) {
-        return res.status(400).json({ error: 'Email and OTP are required' });
+    if (!email || !otp || typeof email !== 'string') {
+        return res.status(400).json({ error: 'Valid email and OTP are required' });
     }
+    email = email.toLowerCase().trim();
 
-    const storedData = await prisma.otp.findUnique({ where: { email } });
+    const storedData = await prisma.otp.findFirst({ where: { email } });
 
     if (!storedData) {
         return res.status(400).json({ error: 'No OTP requested for this email' });
@@ -1407,15 +1409,16 @@ app.post('/auth/verify-otp-and-signup', async (req, res) => {
 });
 
 app.post('/auth/login', async (req, res) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
+    if (!email || !password || typeof email !== 'string') {
+        return res.status(400).json({ error: 'Valid email and password are required' });
     }
+    email = email.toLowerCase().trim();
 
     try {
         console.log(`[AUTH] Login attempt`);
-        const user = await prisma.user.findUnique({
+        const user = await prisma.user.findFirst({
             where: { email: email }
         });
 
