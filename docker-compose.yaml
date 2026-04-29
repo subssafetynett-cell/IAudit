@@ -49,8 +49,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
     expose:
       - 3001
-    ports:
-      - "3001:3001"
+
     networks:
       - backend-network
     logging:
@@ -68,8 +67,7 @@ services:
       - server
     expose:
       - 80
-    ports:
-      - "8080:80"
+
     networks:
       - backend-network
     logging:
