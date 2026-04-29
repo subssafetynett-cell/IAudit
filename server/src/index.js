@@ -2,29 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import prisma from './prisma.js';
+import prisma, { handlePrismaError } from './prisma.js';
 import bcrypt from 'bcrypt';
 import Stripe from 'stripe';
 import { STRIPE_CONFIG } from './stripe-config.js';
-import { exec } from 'child_process';
 
 dotenv.config();
-
-// Auto-apply database schema changes in production (Truly non-blocking background task)
-setTimeout(() => {
-    console.log('Background: Starting database synchronization...');
-    exec('npx prisma db push --accept-data-loss', (error, stdout, stderr) => {
-        if (error) {
-            console.error('Background DB Sync Error:', error.message);
-            return;
-        }
-        console.log('Background DB Sync: Schema pushed.');
-        exec('npx prisma generate', (genError) => {
-            if (genError) console.error('Background Prisma Generate Error:', genError.message);
-            else console.log('Background DB Sync: Client generated.');
-        });
-    });
-}, 5000);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1332,17 +1315,7 @@ const sendOtpLogic = async (req, res) => {
         res.status(200).json({ message: 'OTP sent successfully (Bypassed if email failed)' });
 
     } catch (error) {
-        console.error(`--- SEND OTP FAILURE at step: ${step} ---`);
-        console.error('Email:', email);
-        console.error('Error message:', error.message);
-
-        // Add specific hints for AWS/Production issues
-        if (error.message.includes('ECONNREFUSED')) {
-            console.error('HINT: Check if your DATABASE_URL is accessible from this server.');
-        } else if (error.message.includes('Invalid login') || error.message.includes('EAUTH')) {
-            console.error('HINT: Email authentication failed. Check your SMTP/Gmail credentials.');
-        }
-
+        handlePrismaError(error, `sendOtpLogic at step: ${step}`);
         res.status(500).json({
             error: `Failed during: ${step}`,
             message: error.message,
@@ -1458,8 +1431,8 @@ app.post('/auth/login', async (req, res) => {
         res.status(200).json(userWithoutPassword);
 
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'An error occurred during login' });
+        handlePrismaError(error, 'login');
+        res.status(500).json({ error: 'An error occurred during login', details: error.message });
     }
 });
 
