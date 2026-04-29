@@ -35,10 +35,11 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.js ./
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/src ./src
+COPY --from=builder /app/start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 ENV NODE_ENV=production
 EXPOSE 3001
 
-# Note: In production, you should run migrations/db push as a separate CI step 
-# or a sidecar, NOT in a background setTimeout.
-CMD ["node", "src/index.js"]
+# Start using the initialization script
+CMD ["./start.sh"]
