@@ -1,4 +1,6 @@
 import pkgPrisma from '../generated/prisma/index.js';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -8,11 +10,11 @@ const rawConnectionString = process.env.DATABASE_URL || '';
 // Clean the connection string by removing potential quotes and whitespace
 const connectionString = rawConnectionString.trim().replace(/^["']|["']$/g, '');
 
-// Standard Prisma Client initialization
-// Note: Prisma 5/6/7 handles SSL automatically via the connection string query parameters (?sslmode=require)
-// Assign the cleaned string back to the environment so Prisma picks it up automatically.
-process.env.DATABASE_URL = connectionString;
+// Prisma 7+ requires driver adapters, so we initialize a pg Pool and wrap it.
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 
-const prisma = new PrismaClient();
+// Pass the adapter to the PrismaClient options
+const prisma = new PrismaClient({ adapter });
 
 export default prisma;
