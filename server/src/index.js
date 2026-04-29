@@ -30,13 +30,21 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Compatibility Middleware: Strips /api prefix for local development
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api')) {
+        req.url = req.url.replace('/api', '');
+    }
+    next();
+});
+
 app.use(cors({
     origin: ['https://iaudit.global', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080', 'http://localhost:8081'], // Allow production and local development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires']
 }));
 // --- Stripe Webhook Route (MUST BE BEFORE express.json()) ---
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+app.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
 
@@ -766,7 +774,7 @@ app.use((req, res, next) => {
 });
 
 // Prevent caching for API routes to fix AWS caching issue where companies/sites disappear on refresh
-app.use('/api', (req, res, next) => {
+app.use('/', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -889,7 +897,7 @@ app.get('/', (req, res) => {
 });
 
 // Admin Route to manually force DB Schema push 
-app.get('/api/admin/upgrade-db', (req, res) => {
+app.get('/admin/upgrade-db', (req, res) => {
     try {
         console.log('Manual DB upgrade requested...');
         const outputPush = execSync('npx prisma db push --accept-data-loss', { encoding: 'utf-8' });
@@ -909,9 +917,9 @@ app.get('/api/admin/upgrade-db', (req, res) => {
 });
 
 // Example route to get all companies (including sites and departments)
-app.get('/api/companies', checkTrialExpiration, async (req, res) => {
+app.get('/companies', checkTrialExpiration, async (req, res) => {
     const { userId, admin } = req.query;
-    console.log(`[DEBUG] GET /api/companies called with userId: ${userId}, admin: ${admin}`);
+    console.log(`[DEBUG] GET /companies called with userId: ${userId}, admin: ${admin}`);
 
     try {
         if (admin === 'true') {
@@ -928,7 +936,7 @@ app.get('/api/companies', checkTrialExpiration, async (req, res) => {
 
         // SECURITY: Enforce strict userId filtering. Do not return all companies if userId is missing.
         if (!userId || userId === 'undefined' || userId === 'null') {
-            console.warn(`[SECURITY] GET /api/companies called without valid userId. Returning empty list.`);
+            console.warn(`[SECURITY] GET /companies called without valid userId. Returning empty list.`);
             return res.json([]);
         }
         const parsedUserId = Number.parseInt(userId);
@@ -960,7 +968,7 @@ app.get('/api/companies', checkTrialExpiration, async (req, res) => {
 });
 
 // Create a site
-app.post('/api/companies/:companyId/sites', checkTrialExpiration, async (req, res) => {
+app.post('/companies/:companyId/sites', checkTrialExpiration, async (req, res) => {
     const { companyId } = req.params;
     const {
         name, description, siteType, status,
@@ -998,7 +1006,7 @@ app.post('/api/companies/:companyId/sites', checkTrialExpiration, async (req, re
 });
 
 // Get all sites (with strict user filtering for security)
-app.get('/api/sites', checkTrialExpiration, async (req, res) => {
+app.get('/sites', checkTrialExpiration, async (req, res) => {
     const { userId } = req.query;
 
     // SECURITY: Enforce strict userId filtering. Do not return all sites if userId is missing.
@@ -1026,7 +1034,7 @@ app.get('/api/sites', checkTrialExpiration, async (req, res) => {
 });
 
 // Update a site
-app.put('/api/sites/:id', checkTrialExpiration, async (req, res) => {
+app.put('/sites/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     const {
         name, description, siteType, status,
@@ -1063,7 +1071,7 @@ app.put('/api/sites/:id', checkTrialExpiration, async (req, res) => {
 });
 
 // Delete a site
-app.delete('/api/sites/:id', checkTrialExpiration, async (req, res) => {
+app.delete('/sites/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.site.delete({
@@ -1077,7 +1085,7 @@ app.delete('/api/sites/:id', checkTrialExpiration, async (req, res) => {
 });
 
 // Create a department
-app.post('/api/sites/:siteId/departments', checkTrialExpiration, async (req, res) => {
+app.post('/sites/:siteId/departments', checkTrialExpiration, async (req, res) => {
     const { siteId } = req.params;
     const { name, code, status, manager, description } = req.body;
     try {
@@ -1099,7 +1107,7 @@ app.post('/api/sites/:siteId/departments', checkTrialExpiration, async (req, res
 });
 
 // Update a department
-app.put('/api/departments/:id', checkTrialExpiration, async (req, res) => {
+app.put('/departments/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     const { name, code, status, manager, description } = req.body;
     try {
@@ -1115,7 +1123,7 @@ app.put('/api/departments/:id', checkTrialExpiration, async (req, res) => {
 });
 
 // Delete a department
-app.delete('/api/departments/:id', checkTrialExpiration, async (req, res) => {
+app.delete('/departments/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.department.delete({
@@ -1129,7 +1137,7 @@ app.delete('/api/departments/:id', checkTrialExpiration, async (req, res) => {
 });
 
 // Example route to create a company
-app.post('/api/companies', checkTrialExpiration, async (req, res) => {
+app.post('/companies', checkTrialExpiration, async (req, res) => {
     const {
         name, industry, description, logo,
         contactNumber, streetAddress, city,
@@ -1175,7 +1183,7 @@ app.post('/api/companies', checkTrialExpiration, async (req, res) => {
 });
 
 // Update a company
-app.put('/api/companies/:id', checkTrialExpiration, async (req, res) => {
+app.put('/companies/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     const {
         name, industry, description, logo,
@@ -1209,7 +1217,7 @@ app.put('/api/companies/:id', checkTrialExpiration, async (req, res) => {
 });
 
 // Delete a company
-app.delete('/api/companies/:id', checkTrialExpiration, async (req, res) => {
+app.delete('/companies/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.company.delete({
@@ -1226,7 +1234,7 @@ app.delete('/api/companies/:id', checkTrialExpiration, async (req, res) => {
 // Auth & OTP Routes
 // -------------------------
 
-// Alias for signup if frontend calls /api/auth/signup directly
+// Alias for signup if frontend calls /auth/signup directly
 // Refactored Send OTP logic to be reusable
 const sendOtpLogic = async (req, res) => {
     const { email } = req.body;
@@ -1343,10 +1351,10 @@ const sendOtpLogic = async (req, res) => {
     }
 };
 
-app.post('/api/auth/send-otp', sendOtpLogic);
-app.post('/api/auth/signup', sendOtpLogic);
+app.post('/auth/send-otp', sendOtpLogic);
+app.post('/auth/signup', sendOtpLogic);
 
-app.post('/api/auth/verify-otp-and-signup', async (req, res) => {
+app.post('/auth/verify-otp-and-signup', async (req, res) => {
     const { email, otp, firstName, lastName, mobile, password, role, customRoleName, isActive } = req.body;
 
     if (!email || !otp) {
@@ -1398,7 +1406,7 @@ app.post('/api/auth/verify-otp-and-signup', async (req, res) => {
     }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/auth/login', async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -1453,7 +1461,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // User routes
-app.get('/api/users', async (req, res) => {
+app.get('/users', async (req, res) => {
     const { creatorId } = req.query;
     try {
         const whereClause = creatorId ? { creatorId: Number.parseInt(creatorId) } : {};
@@ -1479,7 +1487,7 @@ app.get('/api/users', async (req, res) => {
 });
 
 // Get single user status quickly
-app.get('/api/users/:id/status', async (req, res) => {
+app.get('/users/:id/status', async (req, res) => {
     const { id } = req.params;
     try {
         const user = await prisma.user.findUnique({
@@ -1549,7 +1557,7 @@ app.get('/api/users/:id/status', async (req, res) => {
     }
 });
 
-app.post('/api/users', async (req, res) => {
+app.post('/users', async (req, res) => {
     const { firstName, lastName, email, mobile, role, customRoleName, password, creatorId, sendWelcomeEmail } = req.body;
     try {
         const user = await prisma.user.create({
@@ -1606,7 +1614,7 @@ app.post('/api/users', async (req, res) => {
 });
 
 
-app.put('/api/users/:id', async (req, res) => {
+app.put('/users/:id', async (req, res) => {
     const { id } = req.params;
     const { firstName, lastName, email, mobile, role, customRoleName, isActive, password, onboardingCompleted } = req.body;
     try {
@@ -1641,7 +1649,7 @@ app.put('/api/users/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/users/:id', async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.user.delete({
@@ -1655,7 +1663,7 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // Audit Program routes
-app.post('/api/users/:id/start-trial', async (req, res) => {
+app.post('/users/:id/start-trial', async (req, res) => {
     const { id } = req.params;
     try {
         const trialStartDate = new Date();
@@ -1680,7 +1688,7 @@ app.post('/api/users/:id/start-trial', async (req, res) => {
 });
 
 // Audit Program routes
-app.get('/api/audit-programs', checkTrialExpiration, async (req, res) => {
+app.get('/audit-programs', checkTrialExpiration, async (req, res) => {
     const { userId, full } = req.query;
 
     // SECURITY: Enforce strict userId filtering. Do not return all programs if userId is missing.
@@ -1763,7 +1771,7 @@ app.get('/api/audit-programs', checkTrialExpiration, async (req, res) => {
 });
 
 // Get single Audit Program (Full Details)
-app.get('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
+app.get('/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         const program = await prisma.auditProgram.findUnique({
@@ -1782,7 +1790,7 @@ app.get('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     }
 });
 
-app.post('/api/audit-programs', checkTrialExpiration, async (req, res) => {
+app.post('/audit-programs', checkTrialExpiration, async (req, res) => {
     const { name, isoStandard, frequency, duration, siteId, auditorIds, leadAuditorId, scheduleData, userId } = req.body;
     try {
         const program = await prisma.auditProgram.create({
@@ -1813,7 +1821,7 @@ app.post('/api/audit-programs', checkTrialExpiration, async (req, res) => {
     }
 });
 
-app.put('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
+app.put('/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     const { name, isoStandard, frequency, duration, siteId, auditorIds, leadAuditorId, scheduleData, status } = req.body;
     try {
@@ -1855,7 +1863,7 @@ app.put('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     }
 });
 
-app.delete('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => {
+app.delete('/audit-programs/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     const programId = Number.parseInt(id);
     try {
@@ -1880,7 +1888,7 @@ app.delete('/api/audit-programs/:id', checkTrialExpiration, async (req, res) => 
 // Audit Plan Routes
 
 // Get all audit plans (optionally filter by programId)
-app.get('/api/audit-plans', checkTrialExpiration, async (req, res) => {
+app.get('/audit-plans', checkTrialExpiration, async (req, res) => {
     const { programId, userId } = req.query;
     try {
         const whereClause = {};
@@ -1975,7 +1983,7 @@ app.get('/api/audit-plans', checkTrialExpiration, async (req, res) => {
 });
 
 // Get single Audit Plan (Full Details)
-app.get('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
+app.get('/audit-plans/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         const plan = await prisma.auditPlan.findUnique({
@@ -1999,7 +2007,7 @@ app.get('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
 });
 
 // Create Audit Plan
-app.post('/api/audit-plans', checkTrialExpiration, async (req, res) => {
+app.post('/audit-plans', checkTrialExpiration, async (req, res) => {
     const {
         auditProgramId, executionId, auditType, auditName, templateId, date, location,
         scope, objective, criteria,
@@ -2044,7 +2052,7 @@ app.post('/api/audit-plans', checkTrialExpiration, async (req, res) => {
 });
 
 // Update Audit Plan
-app.put('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
+app.put('/audit-plans/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     const {
         auditType, auditName, templateId, date, location,
@@ -2086,7 +2094,7 @@ app.put('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
 });
 
 // Delete Audit Plan
-app.delete('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
+app.delete('/audit-plans/:id', checkTrialExpiration, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.auditPlan.delete({
@@ -2101,7 +2109,7 @@ app.delete('/api/audit-plans/:id', checkTrialExpiration, async (req, res) => {
 
 
 // Send Self Assessment Report by email
-app.post('/api/send-assessment-report', async (req, res) => {
+app.post('/send-assessment-report', async (req, res) => {
     const { to, companyName, auditorName, auditCompany, standard, score, date, questions } = req.body;
 
     if (!to || !companyName || !standard) {
@@ -2210,7 +2218,7 @@ app.post('/api/send-assessment-report', async (req, res) => {
 });
 
 // Feedback API
-app.post('/api/feedback', async (req, res) => {
+app.post('/feedback', async (req, res) => {
     const { name, email, feedback, image } = req.body;
 
     if (!name || !email || !feedback) {
@@ -2271,7 +2279,7 @@ app.post('/api/feedback', async (req, res) => {
     }
 });
 
-app.get('/api/stripe/session/:sessionId', async (req, res) => {
+app.get('/stripe/session/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
     try {
         const session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -2312,7 +2320,7 @@ app.get('/api/stripe/session/:sessionId', async (req, res) => {
 
 // --- Stripe Payment Routes ---
 
-app.post('/api/payments/create-checkout-session', async (req, res) => {
+app.post('/payments/create-checkout-session', async (req, res) => {
     const { userId, planId, billingType, currency, priceId: directPriceId, duration } = req.body;
 
     if (!userId || !planId || !billingType || !currency) {
@@ -2420,7 +2428,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     }
 });
 
-app.post('/api/payments/portal', async (req, res) => {
+app.post('/payments/portal', async (req, res) => {
     const { userId } = req.body;
     try {
         const user = await prisma.user.findUnique({ where: { id: Number.parseInt(userId) } });
@@ -2441,7 +2449,7 @@ app.post('/api/payments/portal', async (req, res) => {
 });
 
 // --- Subscription Invoices Endpoint ---
-app.get('/api/subscription/invoices/:userId', async (req, res) => {
+app.get('/subscription/invoices/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
         const user = await prisma.user.findUnique({ where: { id: Number.parseInt(userId) } });
@@ -2547,7 +2555,7 @@ app.get('/api/subscription/invoices/:userId', async (req, res) => {
 });
 
 // --- Update Renewal Preference ---
-app.patch('/api/users/:userId/subscription-preference', async (req, res) => {
+app.patch('/users/:userId/subscription-preference', async (req, res) => {
     const { userId } = req.params;
     const { renewalType, autopayConsent, subscriptionId } = req.body;
 
@@ -2597,7 +2605,7 @@ app.patch('/api/users/:userId/subscription-preference', async (req, res) => {
 });
 
 // --- Subscription Cancellation Request ---
-app.post('/api/subscription/cancel-request', async (req, res) => {
+app.post('/subscription/cancel-request', async (req, res) => {
     const { userId, reason, description } = req.body;
 
     console.log('Cancellation Request Received:', { userId, reason });
@@ -2664,7 +2672,7 @@ app.post('/api/subscription/cancel-request', async (req, res) => {
 });
 
 // --- Subscription Upgrade Request ---
-app.post('/api/subscription/upgrade-request', async (req, res) => {
+app.post('/subscription/upgrade-request', async (req, res) => {
     const { userId, targetPlan, description } = req.body;
 
     console.log('Upgrade Request Received:', { userId, targetPlan });
