@@ -10,12 +10,9 @@ const connectionString = rawConnectionString.trim().replace(/^["']|["']$/g, '');
 
 // Standard Prisma Client initialization
 // Note: Prisma 5/6/7 handles SSL automatically via the connection string query parameters (?sslmode=require)
-const prisma = new PrismaClient({
-    datasources: {
-        db: {
-            url: connectionString,
-        },
-    },
-});
+// Assign the cleaned string back to the environment so Prisma picks it up automatically.
+process.env.DATABASE_URL = connectionString;
+
+const prisma = new PrismaClient();
 
 export default prisma;
