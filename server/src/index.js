@@ -2388,7 +2388,31 @@ app.post('/payments/create-checkout-session', async (req, res) => {
             };
         }
 
-        const session = await stripe.checkout.sessions.create(sessionParams);
+        let session;
+        try {
+            session = await stripe.checkout.sessions.create(sessionParams);
+        } catch (err) {
+            // Auto-heal if the customer ID from DB is from a different mode (Test vs Live)
+            if (err.message && err.message.includes('No such customer')) {
+                console.log(`[Stripe Auto-Heal] Customer ${stripeCustomerId} not found in this mode. Creating new customer for user ${user.id}.`);
+                const newCustomer = await stripe.customers.create({
+                    email: user.email,
+                    name: `${user.firstName} ${user.lastName}`,
+                    metadata: { userId: user.id.toString(), email: user.email }
+                });
+                stripeCustomerId = newCustomer.id;
+                
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { stripeCustomerId }
+                });
+                
+                sessionParams.customer = stripeCustomerId;
+                session = await stripe.checkout.sessions.create(sessionParams);
+            } else {
+                throw err;
+            }
+        }
 
         // 3. Log pending payment
         await prisma.payment.create({
