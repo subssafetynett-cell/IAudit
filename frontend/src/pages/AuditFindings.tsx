@@ -393,8 +393,8 @@ export default function AuditFindings() {
             // If superadmin, fetch all plans (omit userId)
             const isSuperAdmin = user.role === 'superadmin';
             const url = isSuperAdmin
-                ? `${API_BASE_URL}/api/audit-plans?includeData=true`
-                : `${API_BASE_URL}/api/audit-plans?userId=${user.id || user._id}&includeData=true`;
+                ? `${API_BASE_URL}/audit-plans?includeData=true`
+                : `${API_BASE_URL}/audit-plans?userId=${user.id || user._id}&includeData=true`;
 
             const res = await fetch(url);
             if (!res.ok) throw new Error("API call failed");
@@ -473,7 +473,7 @@ export default function AuditFindings() {
         setIsSaving(true);
         try {
             // Fetch the specific plan to update its findingsData
-            const resPlan = await fetch(`${API_BASE_URL}/api/audit-plans/${updated.auditId}`);
+            const resPlan = await fetch(`${API_BASE_URL}/audit-plans/${updated.auditId}`);
             if (!resPlan.ok) throw new Error("Plan not found");
             const plan = await resPlan.json();
             if (!plan) throw new Error("Plan not found");
@@ -491,7 +491,7 @@ export default function AuditFindings() {
                 }
             };
 
-            const resUpdate = await fetch(`${API_BASE_URL}/api/audit-plans/${updated.auditId}`, {
+            const resUpdate = await fetch(`${API_BASE_URL}/audit-plans/${updated.auditId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ findingsData: newOverrides })

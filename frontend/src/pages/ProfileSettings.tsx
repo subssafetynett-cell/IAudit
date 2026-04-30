@@ -79,7 +79,7 @@ export default function ProfileSettings() {
         try {
             const userId = user.id || user._id;
 
-            const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

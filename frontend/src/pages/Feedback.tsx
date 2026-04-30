@@ -52,7 +52,7 @@ const Feedback = () => {
                 image: image // base64 string
             };
 
-            const response = await fetch(`${API_BASE_URL}/api/feedback`, {
+            const response = await fetch(`${API_BASE_URL}/feedback`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

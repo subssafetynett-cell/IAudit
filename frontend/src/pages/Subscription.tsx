@@ -189,7 +189,7 @@ export default function Subscription() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/payments/create-checkout-session`,
+        `${API_BASE_URL}/payments/create-checkout-session`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

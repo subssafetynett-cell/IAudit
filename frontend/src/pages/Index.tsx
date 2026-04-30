@@ -96,9 +96,9 @@ const Index = () => {
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const [usersRes, plansRes, programsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`),
-          fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`),
-          fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
+          fetch(`${API_BASE_URL}/users?creatorId=${user.id}`),
+          fetch(`${API_BASE_URL}/audit-plans?userId=${user.id}`),
+          fetch(`${API_BASE_URL}/audit-programs?userId=${user.id}`)
         ]);
 
         if (usersRes.ok) setUsers(await usersRes.json());
@@ -346,7 +346,7 @@ const Index = () => {
         if (!currentUser) return;
         localStorage.setItem('trial_modal_seen', 'true');
         try {
-            const response = await fetch(`${API_BASE_URL}/api/users/${currentUser.id}/start-trial`, {
+            const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/start-trial`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });

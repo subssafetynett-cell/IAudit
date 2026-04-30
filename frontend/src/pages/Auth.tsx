@@ -103,7 +103,7 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: loginEmail, password: loginPassword })
@@ -162,7 +162,7 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+            const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: signupEmail })
@@ -195,7 +195,7 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+            const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: signupEmail })
@@ -223,7 +223,7 @@ export default function Auth() {
         setErrorMessage("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp-and-signup`, {
+            const response = await fetch(`${API_BASE_URL}/auth/verify-otp-and-signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

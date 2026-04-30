@@ -100,8 +100,8 @@ export default function SubscriptionDetails() {
     const fetchData = async () => {
       try {
         const [statusRes, invoicesRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/users/${userId}/status`),
-          fetch(`${API_BASE_URL}/api/subscription/invoices/${userId}`)
+          fetch(`${API_BASE_URL}/users/${userId}/status`),
+          fetch(`${API_BASE_URL}/subscription/invoices/${userId}`)
         ]);
 
         const statusData = await statusRes.json();
@@ -142,7 +142,7 @@ export default function SubscriptionDetails() {
 
     setIsSubmittingCancel(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/subscription/cancel-request`, {
+      const response = await fetch(`${API_BASE_URL}/subscription/cancel-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -187,7 +187,7 @@ export default function SubscriptionDetails() {
 
     setIsSubmittingUpgrade(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/subscription/upgrade-request`, {
+      const response = await fetch(`${API_BASE_URL}/subscription/upgrade-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,7 +222,7 @@ export default function SubscriptionDetails() {
   const handleUpdatePayment = async () => {
     setIsPortalLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/payments/portal`, {
+      const response = await fetch(`${API_BASE_URL}/payments/portal`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId })

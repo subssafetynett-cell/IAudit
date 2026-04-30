@@ -32,7 +32,7 @@ export default function SubscriptionSuccess() {
     sessionStorage.removeItem('hasClosedExpiredModal');
     
     if (sessionId) {
-      fetch(`${API_BASE_URL}/api/stripe/session/${sessionId}`)
+      fetch(`${API_BASE_URL}/stripe/session/${sessionId}`)
         .then(res => res.json())
         .then(data => {
           setDetails(data);

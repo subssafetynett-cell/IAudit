@@ -306,7 +306,7 @@ const AuditExecute = () => {
       if (!id) return;
       setIsRefreshing(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/audit-plans/${id}`);
+        const res = await fetch(`${API_BASE_URL}/audit-plans/${id}`);
         if (!res.ok) throw new Error("Plan not found");
         const found = await res.json();
         if (found) {
@@ -790,7 +790,7 @@ const AuditExecute = () => {
         editableChecklist
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/audit-plans/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/audit-plans/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

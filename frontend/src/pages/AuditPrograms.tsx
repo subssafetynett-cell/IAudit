@@ -89,9 +89,9 @@ const AuditPrograms = () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const [sitesRes, usersRes, programsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/sites?userId=${user.id}`),
-                    fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
-                    fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`)
+                    fetch(`${API_BASE_URL}/sites?userId=${user.id}`),
+                    fetch(`${API_BASE_URL}/users?creatorId=${user.id}`), // Scope users as well or maybe fetch all depending on req, let's keep it safe
+                    fetch(`${API_BASE_URL}/audit-programs?userId=${user.id}`)
                 ]);
                 const sitesData = sitesRes.ok ? await sitesRes.json() : [];
                 let usersData = usersRes.ok ? await usersRes.json() : [];
@@ -125,7 +125,7 @@ const AuditPrograms = () => {
     const fetchPrograms = async () => {
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const res = await fetch(`${API_BASE_URL}/api/audit-programs?userId=${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/audit-programs?userId=${user.id}`);
             if (res.ok) {
                 const data = await res.json();
                 setAuditPrograms(Array.isArray(data) ? data : []);
@@ -210,7 +210,7 @@ const AuditPrograms = () => {
 
     const handleSaveProgram = async () => {
         setLoading(true);
-        const url = view === "edit" ? `${API_BASE_URL}/api/audit-programs/${currentId}` : `${API_BASE_URL}/api/audit-programs`;
+        const url = view === "edit" ? `${API_BASE_URL}/audit-programs/${currentId}` : `${API_BASE_URL}/audit-programs`;
         const method = view === "edit" ? "PUT" : "POST";
 
         try {
@@ -250,7 +250,7 @@ const AuditPrograms = () => {
     const handleDeleteProgram = async () => {
         if (!deleteId) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/api/audit-programs/${deleteId}`, { method: "DELETE" });
+            const res = await fetch(`${API_BASE_URL}/audit-programs/${deleteId}`, { method: "DELETE" });
             if (res.ok) {
                 toast.success("Program deleted");
                 await fetchPrograms();
@@ -266,7 +266,7 @@ const AuditPrograms = () => {
     const handleEditProgram = async (program: any) => {
         const loadingToast = toast.loading("Fetching program details...");
         try {
-            const res = await fetch(`${API_BASE_URL}/api/audit-programs/${program.id}`);
+            const res = await fetch(`${API_BASE_URL}/audit-programs/${program.id}`);
             if (!res.ok) throw new Error("Failed to fetch details");
             const fullProgram = await res.json();
 
@@ -296,7 +296,7 @@ const AuditPrograms = () => {
     const handleViewProgram = async (program: any) => {
         const loadingToast = toast.loading("Loading program details...");
         try {
-            const res = await fetch(`${API_BASE_URL}/api/audit-programs/${program.id}`);
+            const res = await fetch(`${API_BASE_URL}/audit-programs/${program.id}`);
             if (!res.ok) throw new Error("Failed to fetch details");
             const fullProgram = await res.json();
 
@@ -383,7 +383,7 @@ const AuditPrograms = () => {
         let fullProgram = program;
         if (!program.scheduleData) {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/audit-programs/${program.id}`);
+                const res = await fetch(`${API_BASE_URL}/audit-programs/${program.id}`);
                 if (res.ok) fullProgram = await res.json();
             } catch (e) {
                 console.error("Failed to fetch full program details for PDF", e);
@@ -533,7 +533,7 @@ const AuditPrograms = () => {
         let fullProgram = program;
         if (!program.scheduleData) {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/audit-programs/${program.id}`);
+                const res = await fetch(`${API_BASE_URL}/audit-programs/${program.id}`);
                 if (res.ok) fullProgram = await res.json();
             } catch (e) {
                 console.error("Failed to fetch full program details for Word", e);
@@ -805,7 +805,7 @@ const AuditPrograms = () => {
                                                     if (userJson) {
                                                         const user = JSON.parse(userJson);
                                                         try {
-                                                            const response = await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
+                                                            const response = await fetch(`${API_BASE_URL}/users/${user.id}`, {
                                                                 method: 'PUT',
                                                                 headers: { 'Content-Type': 'application/json' },
                                                                 body: JSON.stringify({ onboardingCompleted: true })

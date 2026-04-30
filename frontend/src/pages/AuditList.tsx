@@ -42,7 +42,7 @@ const AuditList = () => {
         const fetchPlans = async () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const res = await fetch(`${API_BASE_URL}/api/audit-plans?userId=${user.id}`);
+                const res = await fetch(`${API_BASE_URL}/audit-plans?userId=${user.id}`);
                 const data = await res.json();
                 setAuditPlans(Array.isArray(data) ? data : []);
             } catch (error) {
@@ -58,7 +58,7 @@ const AuditList = () => {
     const handleDeletePlan = async (planId: number) => {
         if (!confirm("Are you sure you want to delete this audit plan?")) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planId}`, {
+            const res = await fetch(`${API_BASE_URL}/audit-plans/${planId}`, {
                 method: "DELETE"
             });
             if (res.ok) {
@@ -123,7 +123,7 @@ const AuditList = () => {
     const handleDownloadDocx = async (planStub: any) => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planStub.id}`);
+            const res = await fetch(`${API_BASE_URL}/audit-plans/${planStub.id}`);
             if (!res.ok) throw new Error("Failed to fetch full plan details");
             const plan = await res.json();
 

@@ -76,7 +76,7 @@ export default function AccountSettings() {
         try {
             const userId = user.id || user._id;
 
-            const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ export default function AccountSettings() {
         setIsLoading(true);
         try {
             const userId = user.id || user._id;
-            const response = await fetch(`${API_BASE_URL}/api/payments/portal`, {
+            const response = await fetch(`${API_BASE_URL}/payments/portal`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId }),

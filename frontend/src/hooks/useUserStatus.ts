@@ -28,7 +28,7 @@ export function useUserStatus() {
         if (!userId) return;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/users/${userId}/status`);
+            const res = await fetch(`${API_BASE_URL}/users/${userId}/status`);
             if (!res.ok) return; // Server error: don't force logout (could be temporary)
 
             const data = await res.json();

@@ -119,7 +119,7 @@ const CreateAuditPlanPage = () => {
         const fetchUsers = async () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const response = await fetch(`${API_BASE_URL}/api/users?creatorId=${user.id}`);
+                const response = await fetch(`${API_BASE_URL}/users?creatorId=${user.id}`);
                 if (response.ok) {
                     const data = await response.json();
                     const usersList = Array.isArray(data) ? data : [];
@@ -156,7 +156,7 @@ const CreateAuditPlanPage = () => {
 
         const loadFullPlan = async (planId: number) => {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/audit-plans/${planId}`);
+                const res = await fetch(`${API_BASE_URL}/audit-plans/${planId}`);
                 if (res.ok) {
                     const fullPlan = await res.json();
                     setAuditName(fullPlan.auditName || "");
@@ -342,7 +342,7 @@ const CreateAuditPlanPage = () => {
                 userId: user.id
             };
 
-            const url = isEditMode ? `${API_BASE_URL}/api/audit-plans/${plan.id}` : `${API_BASE_URL}/api/audit-plans`;
+            const url = isEditMode ? `${API_BASE_URL}/audit-plans/${plan.id}` : `${API_BASE_URL}/audit-plans`;
             const method = isEditMode ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
