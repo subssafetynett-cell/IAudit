@@ -10,7 +10,7 @@ async function main() {
   if (users.length < 2) {
     console.log('Not enough users found for testing.');
     return;
-  }
+  } 
 
   const userA = users[0];
   const userB = users[1];
