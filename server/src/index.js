@@ -11,7 +11,11 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
+if (stripeKey === 'sk_test_placeholder') {
+    console.warn('[WARNING] STRIPE_SECRET_KEY is missing. Using placeholder key (Stripe will fail).');
+}
+const stripe = new Stripe(stripeKey);
 
 // Compatibility Middleware: Strips /api prefix for local development
 app.use((req, res, next) => {
