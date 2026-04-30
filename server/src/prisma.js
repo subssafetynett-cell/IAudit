@@ -10,12 +10,16 @@ const rawConnectionString = process.env.DATABASE_URL || '';
 // Clean the connection string by removing potential quotes and whitespace
 const connectionString = rawConnectionString.trim().replace(/^["']|["']$/g, '');
 
+// Determine if we need SSL based on whether it's a local or remote connection
+const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+
 // Prisma 7+ requires driver adapters, so we initialize a pg Pool and wrap it.
 const pool = new Pool({ 
     connectionString,
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
+    ...(isLocalhost ? {} : { ssl: { rejectUnauthorized: false } })
 });
 
 const adapter = new PrismaPg(pool);
