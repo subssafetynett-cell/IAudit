@@ -11,11 +11,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
-if (stripeKey === 'sk_test_placeholder') {
-    console.warn('[WARNING] STRIPE_SECRET_KEY is missing. Using placeholder key (Stripe will fail).');
-}
-const stripe = new Stripe(stripeKey);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Compatibility Middleware: Strips /api prefix for local development
 app.use((req, res, next) => {
@@ -2332,8 +2328,17 @@ app.post('/payments/create-checkout-session', async (req, res) => {
             return res.status(400).json({ error: 'Invalid plan or pricing configuration' });
         }
 
-        // 1. Ensure Stripe Customer exists
+        // 1. Ensure Stripe Customer exists (with validation for test/live mode mismatch)
         let stripeCustomerId = user.stripeCustomerId;
+        if (stripeCustomerId) {
+            // Validate the existing customer ID works with the current Stripe key (test vs live)
+            try {
+                await stripe.customers.retrieve(stripeCustomerId);
+            } catch (err) {
+                console.warn(`[Stripe] Invalid customer ID ${stripeCustomerId} for user ${user.id} — recreating. Error: ${err.message}`);
+                stripeCustomerId = null; // Force re-creation below
+            }
+        }
         if (!stripeCustomerId) {
             const customer = await stripe.customers.create({
                 email: user.email,
@@ -2388,31 +2393,7 @@ app.post('/payments/create-checkout-session', async (req, res) => {
             };
         }
 
-        let session;
-        try {
-            session = await stripe.checkout.sessions.create(sessionParams);
-        } catch (err) {
-            // Auto-heal if the customer ID from DB is from a different mode (Test vs Live)
-            if (err.message && err.message.includes('No such customer')) {
-                console.log(`[Stripe Auto-Heal] Customer ${stripeCustomerId} not found in this mode. Creating new customer for user ${user.id}.`);
-                const newCustomer = await stripe.customers.create({
-                    email: user.email,
-                    name: `${user.firstName} ${user.lastName}`,
-                    metadata: { userId: user.id.toString(), email: user.email }
-                });
-                stripeCustomerId = newCustomer.id;
-                
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: { stripeCustomerId }
-                });
-                
-                sessionParams.customer = stripeCustomerId;
-                session = await stripe.checkout.sessions.create(sessionParams);
-            } else {
-                throw err;
-            }
-        }
+        const session = await stripe.checkout.sessions.create(sessionParams);
 
         // 3. Log pending payment
         await prisma.payment.create({
